@@ -88,6 +88,18 @@
     </div>
   </nav>
 
+  <!-- Persistence Banner (first visit) -->
+  <div id="persistence-banner" class="hidden print:hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+      <div class="flex items-start gap-3 p-4 rounded-lg" style="background:#EFF6FF; color:#1B365D; border-left:4px solid #C4A35A;">
+        <div class="flex-1 text-sm">
+          Your work is saved automatically in this browser. To back up your data or transfer to another device, use the Export button on the Builder tab. If you clear your browser data, your work will be lost unless you've exported it.
+        </div>
+        <button id="dismiss-persistence-banner" class="shrink-0 text-lg leading-none text-navy hover:text-navy-dark font-bold" title="Dismiss">&times;</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Content -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
 
@@ -205,6 +217,13 @@
         <!-- How to Use -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 class="text-lg font-bold text-navy mb-3">How to Use This Tool</h3>
+
+          <!-- Data persistence note -->
+          <div class="flex items-start gap-3 p-3 mb-4 rounded-lg text-sm" style="background:#EFF6FF; border:1px solid #BFDBFE;">
+            <span class="text-lg leading-none shrink-0">&#128190;</span>
+            <div class="text-gray-700"><strong>Your Data:</strong> All rubrics and evaluations are saved automatically in your browser's local storage. To protect against data loss or transfer to another device, use the <strong>Download Full Backup</strong> button on the Dashboard tab.</div>
+          </div>
+
           <div class="space-y-3 text-sm text-gray-700">
             <div class="flex gap-3">
               <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold shrink-0">1</div>
@@ -486,6 +505,11 @@
                 <option value="">All Rubrics</option>
               </select>
               <button id="export-csv-btn" class="btn-outline text-xs px-3 py-1.5">Export CSV</button>
+              <button id="download-backup-btn" class="btn-gold text-xs px-3 py-1.5">Download Full Backup</button>
+              <label class="btn-outline text-xs px-3 py-1.5 cursor-pointer">
+                Restore from Backup
+                <input type="file" id="restore-backup-input" accept=".json" class="hidden">
+              </label>
               <button id="clear-evaluations-btn" class="btn-outline-red text-xs px-3 py-1.5">Clear All</button>
             </div>
           </div>

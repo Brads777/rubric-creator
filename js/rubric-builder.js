@@ -455,8 +455,18 @@ const RubricBuilder = (() => {
       data.id = editingRubricId;
     }
 
+    const wasFirstRubric = Store.getRubrics().length === 0;
+
     Store.saveRubric(data);
     App.toast('Rubric "' + data.name + '" saved!', 'success');
+
+    // Show backup tip after first rubric save (once only)
+    if ((wasFirstRubric || Store.getRubrics().length === 1) && !localStorage.getItem('rubriciq_backup_tip_shown')) {
+      setTimeout(() => {
+        App.toast('Tip: Download a backup of your rubric using the Export button so you don\'t lose it if you clear your browser.', 'info');
+        localStorage.setItem('rubriciq_backup_tip_shown', '1');
+      }, 1500);
+    }
 
     editingRubricId = data.id || null;
     refreshSavedRubricsList();

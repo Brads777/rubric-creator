@@ -294,6 +294,48 @@ const Store = (() => {
     };
   }
 
+  // ===== Full Backup / Restore =====
+
+  function exportAll() {
+    return {
+      rubrics: getRubrics(),
+      evaluations: getEvaluations(),
+      exportDate: new Date().toISOString(),
+      version: '1.0'
+    };
+  }
+
+  function importAll(data) {
+    let rubricsAdded = 0;
+    let evalsAdded = 0;
+
+    if (data.rubrics && Array.isArray(data.rubrics)) {
+      const existing = getRubrics();
+      const existingIds = new Set(existing.map(r => r.id));
+      data.rubrics.forEach(r => {
+        if (r.id && !existingIds.has(r.id)) {
+          existing.push(r);
+          rubricsAdded++;
+        }
+      });
+      _set(RUBRICS_KEY, existing);
+    }
+
+    if (data.evaluations && Array.isArray(data.evaluations)) {
+      const existing = getEvaluations();
+      const existingIds = new Set(existing.map(e => e.id));
+      data.evaluations.forEach(e => {
+        if (e.id && !existingIds.has(e.id)) {
+          existing.push(e);
+          evalsAdded++;
+        }
+      });
+      _set(EVALUATIONS_KEY, existing);
+    }
+
+    return { rubricsAdded, evalsAdded };
+  }
+
   // ===== Check first visit =====
   function isFirstVisit() {
     return getRubrics().length === 0;
@@ -314,6 +356,8 @@ const Store = (() => {
     deleteAllEvaluations,
     calculateScore,
     getExampleRubric,
+    exportAll,
+    importAll,
     isFirstVisit,
     generateId
   };

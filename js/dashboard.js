@@ -43,6 +43,8 @@ const Dashboard = (() => {
   function init() {
     document.getElementById('dashboard-rubric-select').addEventListener('change', refresh);
     document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+    document.getElementById('download-backup-btn').addEventListener('click', downloadFullBackup);
+    document.getElementById('restore-backup-input').addEventListener('change', restoreFromBackup);
     document.getElementById('clear-evaluations-btn').addEventListener('click', clearAllEvaluations);
     document.getElementById('close-detail-modal').addEventListener('click', closeDetailModal);
     document.getElementById('evaluation-detail-modal').addEventListener('click', (e) => {
@@ -1131,6 +1133,59 @@ const Dashboard = (() => {
     a.click();
     URL.revokeObjectURL(url);
     App.toast('Evaluations exported as CSV!', 'success');
+  }
+
+  // ===== Download Full Backup =====
+
+  function downloadFullBackup() {
+    const data = Store.exportAll();
+    if (data.rubrics.length === 0 && data.evaluations.length === 0) {
+      App.toast('Nothing to back up yet.', 'warning');
+      return;
+    }
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rubriciq-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    App.toast('Full backup downloaded! (' + data.rubrics.length + ' rubrics, ' + data.evaluations.length + ' evaluations)', 'success');
+  }
+
+  // ===== Restore from Backup =====
+
+  function restoreFromBackup(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = JSON.parse(evt.target.result);
+
+        if (!data.rubrics || !Array.isArray(data.rubrics) || !data.evaluations || !Array.isArray(data.evaluations)) {
+          App.toast('Invalid backup file: must contain rubrics and evaluations arrays.', 'error');
+          return;
+        }
+
+        const msg = 'This will merge ' + data.rubrics.length + ' rubrics and ' + data.evaluations.length + ' evaluations with your existing data. Continue?';
+        if (!confirm(msg)) return;
+
+        const result = Store.importAll(data);
+        App.toast('Restored ' + result.rubricsAdded + ' rubrics and ' + result.evalsAdded + ' evaluations', 'success');
+
+        refreshRubricSelect();
+        refresh();
+        if (typeof RubricBuilder !== 'undefined') RubricBuilder.refreshSavedRubricsList();
+        if (typeof Scorer !== 'undefined') Scorer.refreshRubricSelect();
+      } catch (err) {
+        App.toast('Failed to read backup file. Invalid JSON.', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   }
 
   // ===== Clear All =====

@@ -91,11 +91,30 @@ const App = (() => {
     });
   }
 
+  // ===== Persistence Banner =====
+
+  function initPersistenceBanner() {
+    const banner = document.getElementById('persistence-banner');
+    const dismissBtn = document.getElementById('dismiss-persistence-banner');
+    if (!banner || !dismissBtn) return;
+
+    const dismissed = localStorage.getItem('rubriciq_banner_dismissed');
+    if (!dismissed) {
+      banner.classList.remove('hidden');
+    }
+
+    dismissBtn.addEventListener('click', () => {
+      banner.classList.add('hidden');
+      localStorage.setItem('rubriciq_banner_dismissed', '1');
+    });
+  }
+
   // ===== Initialize Everything =====
 
   function init() {
     initTabs();
     initKeyboard();
+    initPersistenceBanner();
     RubricBuilder.init();
     Scorer.init();
     Dashboard.init();

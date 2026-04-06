@@ -254,6 +254,10 @@
   background: #d97706;
   color: white;
 }
+.toast-info {
+  background: #489FC8;
+  color: white;
+}
 
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(1rem); }
