@@ -45,7 +45,43 @@ const Scorer = (() => {
     document.getElementById('submit-evaluation-btn').addEventListener('click', submitEvaluation);
     document.getElementById('reset-scorer-btn').addEventListener('click', resetScorer);
 
+    // Auto-detect iteration when presenter name or rubric changes
+    document.getElementById('scorer-presenter').addEventListener('input', autoDetectIteration);
+    document.getElementById('scorer-rubric-select').addEventListener('change', autoDetectIteration);
+
     refreshRubricSelect();
+  }
+
+  // ===== Auto-Detect Iteration =====
+
+  function autoDetectIteration() {
+    const rubricId = document.getElementById('scorer-rubric-select').value;
+    const presenter = document.getElementById('scorer-presenter').value.trim();
+    const iterInput = document.getElementById('scorer-iteration');
+    const hint = document.getElementById('scorer-iteration-hint');
+
+    if (!rubricId || !presenter) {
+      hint.classList.add('hidden');
+      return;
+    }
+
+    // Find previous evaluations for this presenter+rubric combo
+    const evals = Store.getEvaluationsForRubric(rubricId).filter(
+      e => (e.presenter || '').toLowerCase() === presenter.toLowerCase()
+    );
+
+    if (evals.length > 0) {
+      // Find the max iteration number used
+      const maxIter = evals.reduce((max, e) => Math.max(max, e.iteration || 1), 0);
+      const nextIter = maxIter + 1;
+      iterInput.value = nextIter;
+      hint.textContent = evals.length + ' previous iteration' + (evals.length > 1 ? 's' : '') + ' found. Suggesting iteration ' + nextIter + '.';
+      hint.classList.remove('hidden');
+    } else {
+      iterInput.value = 1;
+      hint.textContent = 'First evaluation for this presenter.';
+      hint.classList.remove('hidden');
+    }
   }
 
   // ===== Refresh Rubric Dropdown =====
@@ -432,6 +468,7 @@ const Scorer = (() => {
     const presenter = document.getElementById('scorer-presenter').value.trim();
     const title = document.getElementById('scorer-title').value.trim();
     const evaluator = document.getElementById('scorer-evaluator').value.trim();
+    const iteration = parseInt(document.getElementById('scorer-iteration').value, 10) || 1;
 
     if (!presenter) {
       App.toast('Presenter name is required.', 'error');
@@ -477,6 +514,7 @@ const Scorer = (() => {
       presenter,
       title,
       evaluator,
+      iteration,
       scores: { ...criteriaScores },
       notes,
       comments,
@@ -572,6 +610,8 @@ const Scorer = (() => {
     document.getElementById('scorer-presenter').value = '';
     document.getElementById('scorer-title').value = '';
     document.getElementById('scorer-evaluator').value = '';
+    document.getElementById('scorer-iteration').value = 1;
+    document.getElementById('scorer-iteration-hint').classList.add('hidden');
 
     renderEmptyState();
   }

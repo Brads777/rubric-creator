@@ -1,5 +1,5 @@
 /**
- * dashboard.js — Results dashboard logic
+ * dashboard.js — Results dashboard logic with iteration progress tracking
  * RubricIQ - S.H.I.T. Evaluation Framework
  * ©2026 G. Bradley Scheller. All rights reserved.
  *
@@ -8,8 +8,18 @@
  */
 
 const Dashboard = (() => {
-  let sortColumn = 'date';
-  let sortDirection = 'desc';
+  let sortColumn = 'presenter';
+  let sortDirection = 'asc';
+
+  // ===== Brand Colors =====
+  const COLORS = {
+    navy: '#1B365D',
+    gold: '#C4A35A',
+    accent: '#489FC8',
+    green: '#16a34a',
+    red: '#dc2626',
+    gray: '#9ca3af'
+  };
 
   // ===== Utility =====
 
@@ -70,7 +80,7 @@ const Dashboard = (() => {
     }
 
     updateStats(evals);
-    renderPresenterAverages(evals);
+    renderProgressTracker(evals);
     renderEvaluationsTable(evals);
   }
 
@@ -89,24 +99,88 @@ const Dashboard = (() => {
     } else {
       document.getElementById('stat-avg').textContent = '--%';
     }
-  }
 
-  // ===== Presenter Averages =====
+    // Avg iterations to pass
+    const presenterMap = groupByPresenter(evals);
+    const presenters = Object.keys(presenterMap);
+    let totalItersToPass = 0;
+    let presentersWhoPassed = 0;
 
-  function renderPresenterAverages(evals) {
-    const section = document.getElementById('presenter-averages-section');
-    const container = document.getElementById('presenter-averages-table');
-    container.replaceChildren();
-
-    // Group by presenter
-    const presenterMap = {};
-    evals.forEach(e => {
-      const name = e.presenter || 'Unknown';
-      if (!presenterMap[name]) presenterMap[name] = [];
-      presenterMap[name].push(e);
+    presenters.forEach(name => {
+      const group = presenterMap[name];
+      const sorted = sortByIteration(group);
+      // Find the first iteration that passed
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i].result && sorted[i].result.passed) {
+          totalItersToPass += (sorted[i].iteration || 1);
+          presentersWhoPassed++;
+          break;
+        }
+      }
     });
 
-    const presenters = Object.keys(presenterMap);
+    const avgItersEl = document.getElementById('stat-avg-iters');
+    if (presentersWhoPassed > 0) {
+      avgItersEl.textContent = (totalItersToPass / presentersWhoPassed).toFixed(1);
+    } else {
+      avgItersEl.textContent = '--';
+    }
+  }
+
+  // ===== Helper: Group by Presenter =====
+
+  function groupByPresenter(evals) {
+    const map = {};
+    evals.forEach(e => {
+      const name = e.presenter || 'Unknown';
+      if (!map[name]) map[name] = [];
+      map[name].push(e);
+    });
+    return map;
+  }
+
+  // ===== Helper: Sort by Iteration =====
+
+  function sortByIteration(group) {
+    return [...group].sort((a, b) => (a.iteration || 1) - (b.iteration || 1));
+  }
+
+  // ===== Helper: Trend indicator =====
+
+  function getTrend(sorted) {
+    if (sorted.length < 2) {
+      if (sorted.length === 1 && sorted[0].result && sorted[0].result.passed) {
+        return { symbol: '\u2713', label: 'Passed', color: COLORS.green };
+      }
+      return { symbol: '\u2192', label: 'Stable', color: COLORS.gray };
+    }
+
+    const lastPassed = sorted[sorted.length - 1].result && sorted[sorted.length - 1].result.passed;
+    if (lastPassed) {
+      return { symbol: '\u2713', label: 'Passed', color: COLORS.green };
+    }
+
+    const lastScore = sorted[sorted.length - 1].result ? sorted[sorted.length - 1].result.finalPercentage : 0;
+    const prevScore = sorted[sorted.length - 2].result ? sorted[sorted.length - 2].result.finalPercentage : 0;
+
+    if (lastScore > prevScore + 0.5) {
+      return { symbol: '\u2191', label: 'Improving', color: COLORS.green };
+    } else if (lastScore < prevScore - 0.5) {
+      return { symbol: '\u2193', label: 'Declining', color: COLORS.red };
+    }
+    return { symbol: '\u2192', label: 'Stable', color: COLORS.gray };
+  }
+
+  // ===== Progress Tracker (replaces Presenter Averages) =====
+
+  function renderProgressTracker(evals) {
+    const section = document.getElementById('progress-tracker-section');
+    const container = document.getElementById('progress-tracker-container');
+    container.replaceChildren();
+
+    const presenterMap = groupByPresenter(evals);
+    const presenters = Object.keys(presenterMap).sort();
+
     if (presenters.length === 0) {
       section.classList.add('hidden');
       return;
@@ -114,48 +188,276 @@ const Dashboard = (() => {
 
     section.classList.remove('hidden');
 
-    const table = createElement('table', { className: 'w-full text-sm' });
-
-    // Header
-    const thead = createElement('thead');
-    const headerRow = createElement('tr', { className: 'border-b-2 border-gray-200' });
-    ['Presenter', 'Evaluations', 'Avg Score', 'Min', 'Max', 'Pass Rate'].forEach(text => {
-      const th = createElement('th', { className: 'text-left py-2 px-3 text-xs font-bold text-navy uppercase' }, [text]);
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    // Body
-    const tbody = createElement('tbody');
-    presenters.sort().forEach(name => {
+    presenters.forEach(name => {
       const group = presenterMap[name];
-      const scores = group.map(e => e.result ? e.result.finalPercentage : 0);
-      const avg = scores.reduce((s, v) => s + v, 0) / scores.length;
-      const min = Math.min(...scores);
-      const max = Math.max(...scores);
-      const passRate = (group.filter(e => e.result && e.result.passed).length / group.length * 100);
+      const sorted = sortByIteration(group);
+      const trend = getTrend(sorted);
+      const threshold = sorted[0].result ? sorted[0].result.threshold : 96;
 
-      const tr = createElement('tr', { className: 'border-b border-gray-100 hover:bg-gray-50' });
+      // Presenter block
+      const block = createElement('div', { className: 'border border-gray-200 rounded-lg p-4' });
 
-      const nameTd = createElement('td', { className: 'py-2 px-3 font-semibold' }, [name]);
-      const countTd = createElement('td', { className: 'py-2 px-3' }, [String(group.length)]);
-      const avgTd = createElement('td', { className: 'py-2 px-3 font-bold ' + (avg >= 96 ? 'text-green-600' : avg >= 91 ? 'text-yellow-600' : 'text-red-600') },
-        [avg.toFixed(1) + '%']);
-      const minTd = createElement('td', { className: 'py-2 px-3' }, [min.toFixed(1) + '%']);
-      const maxTd = createElement('td', { className: 'py-2 px-3' }, [max.toFixed(1) + '%']);
-      const passRateTd = createElement('td', { className: 'py-2 px-3' }, [passRate.toFixed(0) + '%']);
+      // Header row: name + trend
+      const header = createElement('div', { className: 'flex items-center justify-between mb-3' });
+      const nameEl = createElement('h4', { className: 'text-sm font-bold text-navy' }, [name]);
+      const trendEl = createElement('span', { className: 'text-sm font-bold' });
+      trendEl.style.color = trend.color;
+      trendEl.textContent = trend.symbol + ' ' + trend.label;
+      header.appendChild(nameEl);
+      header.appendChild(trendEl);
+      block.appendChild(header);
 
-      tr.appendChild(nameTd);
-      tr.appendChild(countTd);
-      tr.appendChild(avgTd);
-      tr.appendChild(minTd);
-      tr.appendChild(maxTd);
-      tr.appendChild(passRateTd);
-      tbody.appendChild(tr);
+      // SVG progress chart (only if there are iterations)
+      if (sorted.length > 0) {
+        const chartSvg = buildProgressChart(sorted, threshold);
+        block.appendChild(chartSvg);
+      }
+
+      // Iteration table
+      const table = createElement('table', { className: 'w-full text-xs mt-3' });
+      const thead = createElement('thead');
+      const headerRow = createElement('tr', { className: 'border-b border-gray-200' });
+      ['Iter.', 'Date', 'Evaluator', 'Score', 'Result'].forEach(text => {
+        const th = createElement('th', { className: 'text-left py-1.5 px-2 text-xs font-bold text-navy uppercase' }, [text]);
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = createElement('tbody');
+      sorted.forEach((ev, i) => {
+        const tr = createElement('tr', { className: 'border-b border-gray-50 hover:bg-gray-50 cursor-pointer' });
+        tr.addEventListener('click', () => showDetail(ev));
+
+        const iterTd = createElement('td', { className: 'py-1.5 px-2 font-semibold' }, [String(ev.iteration || 1)]);
+        const dateStr = ev.date ? new Date(ev.date).toLocaleDateString() : '--';
+        const dateTd = createElement('td', { className: 'py-1.5 px-2 text-gray-500' }, [dateStr]);
+        const evalTd = createElement('td', { className: 'py-1.5 px-2' }, [ev.evaluator || '']);
+        const scorePct = ev.result ? ev.result.finalPercentage : 0;
+        const scoreColor = ev.result && ev.result.passed ? 'text-green-600' :
+          scorePct >= threshold - 5 ? 'text-yellow-600' : 'text-red-600';
+
+        // Show delta from previous iteration
+        let deltaText = '';
+        if (i > 0) {
+          const prevPct = sorted[i - 1].result ? sorted[i - 1].result.finalPercentage : 0;
+          const diff = scorePct - prevPct;
+          if (diff > 0) deltaText = ' (+' + diff.toFixed(1) + '%)';
+          else if (diff < 0) deltaText = ' (' + diff.toFixed(1) + '%)';
+        }
+
+        const scoreTd = createElement('td', { className: 'py-1.5 px-2 font-bold ' + scoreColor });
+        scoreTd.textContent = scorePct.toFixed(1) + '%' + deltaText;
+
+        const passed = ev.result && ev.result.passed;
+        const resultTd = createElement('td', { className: 'py-1.5 px-2' });
+        const badge = createElement('span', {
+          className: 'inline-block px-2 py-0.5 rounded text-xs font-bold ' +
+            (passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
+        }, [passed ? 'PASS' : 'FAIL']);
+        resultTd.appendChild(badge);
+
+        tr.appendChild(iterTd);
+        tr.appendChild(dateTd);
+        tr.appendChild(evalTd);
+        tr.appendChild(scoreTd);
+        tr.appendChild(resultTd);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      block.appendChild(table);
+
+      container.appendChild(block);
     });
-    table.appendChild(tbody);
-    container.appendChild(table);
+  }
+
+  // ===== SVG Progress Chart =====
+
+  function buildProgressChart(sorted, threshold) {
+    const width = 400;
+    const height = 200;
+    const padding = { top: 20, right: 50, bottom: 30, left: 45 };
+    const chartW = width - padding.left - padding.right;
+    const chartH = height - padding.top - padding.bottom;
+
+    const wrapper = createElement('div', { className: 'progress-chart-wrapper' });
+
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', 'auto');
+    svg.style.maxWidth = '500px';
+    svg.style.display = 'block';
+
+    // Background
+    const bg = document.createElementNS(svgNs, 'rect');
+    bg.setAttribute('x', '0');
+    bg.setAttribute('y', '0');
+    bg.setAttribute('width', String(width));
+    bg.setAttribute('height', String(height));
+    bg.setAttribute('fill', '#fafafa');
+    bg.setAttribute('rx', '8');
+    svg.appendChild(bg);
+
+    // Determine X and Y ranges
+    const iterations = sorted.map(e => e.iteration || 1);
+    const minIter = Math.min(...iterations);
+    const maxIter = Math.max(...iterations);
+    const iterRange = maxIter === minIter ? 1 : maxIter - minIter;
+
+    // Y: 0 to 100
+    function xPos(iter) {
+      if (sorted.length === 1) return padding.left + chartW / 2;
+      return padding.left + ((iter - minIter) / iterRange) * chartW;
+    }
+    function yPos(pct) {
+      return padding.top + chartH - (pct / 100) * chartH;
+    }
+
+    // Y axis gridlines and labels
+    [0, 25, 50, 75, 100].forEach(pct => {
+      const y = yPos(pct);
+      const gridline = document.createElementNS(svgNs, 'line');
+      gridline.setAttribute('x1', String(padding.left));
+      gridline.setAttribute('y1', String(y));
+      gridline.setAttribute('x2', String(width - padding.right));
+      gridline.setAttribute('y2', String(y));
+      gridline.setAttribute('stroke', '#e5e7eb');
+      gridline.setAttribute('stroke-width', '1');
+      svg.appendChild(gridline);
+
+      const label = document.createElementNS(svgNs, 'text');
+      label.setAttribute('x', String(padding.left - 6));
+      label.setAttribute('y', String(y + 4));
+      label.setAttribute('text-anchor', 'end');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', COLORS.navy);
+      label.textContent = pct + '%';
+      svg.appendChild(label);
+    });
+
+    // X axis labels
+    iterations.forEach(iter => {
+      const x = xPos(iter);
+      const label = document.createElementNS(svgNs, 'text');
+      label.setAttribute('x', String(x));
+      label.setAttribute('y', String(height - 6));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', COLORS.navy);
+      label.textContent = String(iter);
+      svg.appendChild(label);
+    });
+
+    // X axis title
+    const xTitle = document.createElementNS(svgNs, 'text');
+    xTitle.setAttribute('x', String(padding.left + chartW / 2));
+    xTitle.setAttribute('y', String(height - 0));
+    xTitle.setAttribute('text-anchor', 'middle');
+    xTitle.setAttribute('font-size', '9');
+    xTitle.setAttribute('fill', COLORS.gray);
+    xTitle.textContent = 'Iteration';
+    svg.appendChild(xTitle);
+
+    // Axes
+    const xAxis = document.createElementNS(svgNs, 'line');
+    xAxis.setAttribute('x1', String(padding.left));
+    xAxis.setAttribute('y1', String(padding.top + chartH));
+    xAxis.setAttribute('x2', String(width - padding.right));
+    xAxis.setAttribute('y2', String(padding.top + chartH));
+    xAxis.setAttribute('stroke', COLORS.navy);
+    xAxis.setAttribute('stroke-width', '1.5');
+    svg.appendChild(xAxis);
+
+    const yAxis = document.createElementNS(svgNs, 'line');
+    yAxis.setAttribute('x1', String(padding.left));
+    yAxis.setAttribute('y1', String(padding.top));
+    yAxis.setAttribute('x2', String(padding.left));
+    yAxis.setAttribute('y2', String(padding.top + chartH));
+    yAxis.setAttribute('stroke', COLORS.navy);
+    yAxis.setAttribute('stroke-width', '1.5');
+    svg.appendChild(yAxis);
+
+    // Threshold line (dashed, gold)
+    const threshY = yPos(threshold);
+    const threshLine = document.createElementNS(svgNs, 'line');
+    threshLine.setAttribute('x1', String(padding.left));
+    threshLine.setAttribute('y1', String(threshY));
+    threshLine.setAttribute('x2', String(width - padding.right));
+    threshLine.setAttribute('y2', String(threshY));
+    threshLine.setAttribute('stroke', COLORS.gold);
+    threshLine.setAttribute('stroke-width', '2');
+    threshLine.setAttribute('stroke-dasharray', '6,4');
+    svg.appendChild(threshLine);
+
+    // Threshold label
+    const threshLabel = document.createElementNS(svgNs, 'text');
+    threshLabel.setAttribute('x', String(width - padding.right + 4));
+    threshLabel.setAttribute('y', String(threshY + 4));
+    threshLabel.setAttribute('font-size', '9');
+    threshLabel.setAttribute('fill', COLORS.gold);
+    threshLabel.setAttribute('font-weight', 'bold');
+    threshLabel.textContent = threshold + '%';
+    svg.appendChild(threshLabel);
+
+    // Progress line connecting dots
+    if (sorted.length > 1) {
+      const pathPoints = sorted.map(ev => {
+        const pct = ev.result ? ev.result.finalPercentage : 0;
+        return xPos(ev.iteration || 1) + ',' + yPos(pct);
+      });
+      const polyline = document.createElementNS(svgNs, 'polyline');
+      polyline.setAttribute('points', pathPoints.join(' '));
+      polyline.setAttribute('fill', 'none');
+      polyline.setAttribute('stroke', COLORS.accent);
+      polyline.setAttribute('stroke-width', '2.5');
+      polyline.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(polyline);
+    }
+
+    // Dots and score labels
+    sorted.forEach((ev, i) => {
+      const pct = ev.result ? ev.result.finalPercentage : 0;
+      const x = xPos(ev.iteration || 1);
+      const y = yPos(pct);
+      const passed = ev.result && ev.result.passed;
+
+      // Determine dot color
+      let dotColor;
+      if (passed) {
+        dotColor = COLORS.green;
+      } else if (i > 0) {
+        const prevPct = sorted[i - 1].result ? sorted[i - 1].result.finalPercentage : 0;
+        dotColor = pct > prevPct ? COLORS.gold : COLORS.red;
+      } else {
+        dotColor = pct >= threshold ? COLORS.green : COLORS.red;
+      }
+
+      // Draw dot
+      const circle = document.createElementNS(svgNs, 'circle');
+      circle.setAttribute('cx', String(x));
+      circle.setAttribute('cy', String(y));
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', dotColor);
+      circle.setAttribute('stroke', 'white');
+      circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+
+      // Score label next to dot
+      const scoreLabel = document.createElementNS(svgNs, 'text');
+      scoreLabel.setAttribute('x', String(x));
+      scoreLabel.setAttribute('y', String(y - 10));
+      scoreLabel.setAttribute('text-anchor', 'middle');
+      scoreLabel.setAttribute('font-size', '9');
+      scoreLabel.setAttribute('font-weight', 'bold');
+      scoreLabel.setAttribute('fill', dotColor);
+      scoreLabel.textContent = pct.toFixed(1) + '%';
+      svg.appendChild(scoreLabel);
+    });
+
+    wrapper.appendChild(svg);
+    return wrapper;
   }
 
   // ===== Evaluations Table =====
@@ -170,22 +472,31 @@ const Dashboard = (() => {
       return;
     }
 
-    // Sort
+    // Sort: default by presenter then iteration
     const sorted = [...evals].sort((a, b) => {
       let aVal, bVal;
       switch (sortColumn) {
+        case 'iteration': aVal = a.iteration || 1; bVal = b.iteration || 1; break;
         case 'presenter': aVal = a.presenter || ''; bVal = b.presenter || ''; break;
         case 'title': aVal = a.title || ''; bVal = b.title || ''; break;
         case 'evaluator': aVal = a.evaluator || ''; bVal = b.evaluator || ''; break;
         case 'score': aVal = a.result ? a.result.finalPercentage : 0; bVal = b.result ? b.result.finalPercentage : 0; break;
         case 'passfail': aVal = a.result && a.result.passed ? 1 : 0; bVal = b.result && b.result.passed ? 1 : 0; break;
-        case 'date': default: aVal = a.date || ''; bVal = b.date || ''; break;
+        case 'date': aVal = a.date || ''; bVal = b.date || ''; break;
+        default: aVal = a.presenter || ''; bVal = b.presenter || ''; break;
       }
       if (typeof aVal === 'string') {
         const cmp = aVal.localeCompare(bVal);
-        return sortDirection === 'asc' ? cmp : -cmp;
+        if (cmp !== 0) return sortDirection === 'asc' ? cmp : -cmp;
+        // Secondary sort by iteration
+        return (a.iteration || 1) - (b.iteration || 1);
       }
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      const diff = sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      if (diff !== 0) return diff;
+      // Secondary sort by presenter name then iteration
+      const nameCmp = (a.presenter || '').localeCompare(b.presenter || '');
+      if (nameCmp !== 0) return nameCmp;
+      return (a.iteration || 1) - (b.iteration || 1);
     });
 
     const table = createElement('table', { className: 'sortable-table w-full text-sm' });
@@ -196,6 +507,7 @@ const Dashboard = (() => {
 
     const columns = [
       { key: 'presenter', label: 'Presenter' },
+      { key: 'iteration', label: 'Iter.' },
       { key: 'title', label: 'Title' },
       { key: 'evaluator', label: 'Evaluator' },
       { key: 'score', label: 'Score %' },
@@ -238,6 +550,7 @@ const Dashboard = (() => {
       tr.addEventListener('click', () => showDetail(ev));
 
       const presenterTd = createElement('td', { className: 'py-2 px-3 font-semibold' }, [ev.presenter || '']);
+      const iterTd = createElement('td', { className: 'py-2 px-3 text-center font-mono text-xs' }, [String(ev.iteration || 1)]);
       const titleTd = createElement('td', { className: 'py-2 px-3' }, [ev.title || '--']);
       const evaluatorTd = createElement('td', { className: 'py-2 px-3' }, [ev.evaluator || '']);
 
@@ -259,6 +572,7 @@ const Dashboard = (() => {
       const dateTd = createElement('td', { className: 'py-2 px-3 text-gray-500' }, [dateStr]);
 
       tr.appendChild(presenterTd);
+      tr.appendChild(iterTd);
       tr.appendChild(titleTd);
       tr.appendChild(evaluatorTd);
       tr.appendChild(scoreTd);
@@ -284,6 +598,7 @@ const Dashboard = (() => {
 
     const fields = [
       ['Presenter', ev.presenter],
+      ['Iteration', '#' + (ev.iteration || 1)],
       ['Title', ev.title || '--'],
       ['Evaluator', ev.evaluator],
       ['Date', ev.date ? new Date(ev.date).toLocaleString() : '--'],
@@ -331,6 +646,12 @@ const Dashboard = (() => {
       [ev.result ? (ev.result.rawScore + ' / ' + ev.result.maxScore + ' weighted points') : '']);
     scoreBox.appendChild(pointsNote);
     content.appendChild(scoreBox);
+
+    // ===== vs. Previous Iteration Section =====
+    const prevEval = findPreviousIteration(ev);
+    if (prevEval) {
+      content.appendChild(buildIterationComparison(ev, prevEval, rubric));
+    }
 
     // Criteria breakdown
     const criteriaTitle = createElement('h4', { className: 'text-sm font-bold text-navy uppercase mb-2' }, ['Criteria Breakdown']);
@@ -420,6 +741,91 @@ const Dashboard = (() => {
     content.appendChild(reportBtnContainer);
 
     modal.classList.remove('hidden');
+  }
+
+  // ===== Find Previous Iteration =====
+
+  function findPreviousIteration(ev) {
+    const evals = Store.getEvaluationsForRubric(ev.rubricId);
+    const samePresenter = evals.filter(
+      e => (e.presenter || '').toLowerCase() === (ev.presenter || '').toLowerCase() &&
+           e.id !== ev.id
+    );
+    const currentIter = ev.iteration || 1;
+    // Find the evaluation with the highest iteration below current
+    let best = null;
+    samePresenter.forEach(e => {
+      const iter = e.iteration || 1;
+      if (iter < currentIter) {
+        if (!best || iter > (best.iteration || 1)) {
+          best = e;
+        }
+      }
+    });
+    return best;
+  }
+
+  // ===== Build Iteration Comparison =====
+
+  function buildIterationComparison(current, previous, rubric) {
+    const section = createElement('div', { className: 'mb-4 p-4 rounded-lg border-2 border-accent bg-blue-50' });
+
+    const title = createElement('h4', { className: 'text-sm font-bold text-navy uppercase mb-3' },
+      ['vs. Previous Iteration (#' + (previous.iteration || 1) + ' \u2192 #' + (current.iteration || 1) + ')']);
+    section.appendChild(title);
+
+    // Overall improvement
+    const prevPct = previous.result ? previous.result.finalPercentage : 0;
+    const currPct = current.result ? current.result.finalPercentage : 0;
+    const diff = currPct - prevPct;
+    const diffStr = diff > 0 ? '+' + diff.toFixed(1) : diff.toFixed(1);
+    const diffColor = diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : 'text-gray-500';
+
+    const overallDiv = createElement('div', { className: 'text-sm mb-3 p-2 rounded bg-white' });
+    const overallText = createElement('span', { className: 'font-semibold' },
+      ['Overall: ' + prevPct.toFixed(1) + '% \u2192 ' + currPct.toFixed(1) + '% ']);
+    const overallDiff = createElement('span', { className: 'font-bold ' + diffColor }, ['(' + diffStr + '%)']);
+    overallDiv.appendChild(overallText);
+    overallDiv.appendChild(overallDiff);
+    section.appendChild(overallDiv);
+
+    // Per-criterion comparison
+    if (rubric && rubric.criteria) {
+      rubric.criteria.forEach((criterion, idx) => {
+        const prevScore = previous.scores && previous.scores[idx] !== undefined ? previous.scores[idx] : 0;
+        const currScore = current.scores && current.scores[idx] !== undefined ? current.scores[idx] : 0;
+        const scoreDiff = currScore - prevScore;
+
+        let indicator, rowBg;
+        if (scoreDiff > 0) {
+          indicator = '\u2191';
+          rowBg = 'bg-green-50';
+        } else if (scoreDiff < 0) {
+          indicator = '\u2193';
+          rowBg = 'bg-red-50';
+        } else {
+          indicator = '\u2192';
+          rowBg = 'bg-gray-50';
+        }
+
+        const row = createElement('div', { className: 'flex items-center justify-between py-1.5 px-2 rounded text-xs ' + rowBg });
+        const nameSpan = createElement('span', { className: 'font-semibold flex-1' }, [criterion.name]);
+        const changeSpan = createElement('span', { className: 'font-mono' },
+          [prevScore + '/4 \u2192 ' + currScore + '/4 ' + indicator]);
+
+        let changeColor;
+        if (scoreDiff > 0) changeColor = COLORS.green;
+        else if (scoreDiff < 0) changeColor = COLORS.red;
+        else changeColor = COLORS.gray;
+        changeSpan.style.color = changeColor;
+
+        row.appendChild(nameSpan);
+        row.appendChild(changeSpan);
+        section.appendChild(row);
+      });
+    }
+
+    return section;
   }
 
   // ===== Generate Print Report =====
@@ -530,6 +936,31 @@ const Dashboard = (() => {
       guardrailsHtml = '<p style="color:#16a34a;">No guardrail violations.</p>';
     }
 
+    // Build iteration history for report
+    let iterationHtml = '';
+    const allEvals = Store.getEvaluationsForRubric(ev.rubricId).filter(
+      e => (e.presenter || '').toLowerCase() === (ev.presenter || '').toLowerCase()
+    );
+    const sortedIters = [...allEvals].sort((a, b) => (a.iteration || 1) - (b.iteration || 1));
+    if (sortedIters.length > 1) {
+      iterationHtml += '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Iteration History</h2>';
+      iterationHtml += '<table><tr><th style="padding:6px 8px;background:#1B365D;color:white;font-size:11px;">Iter.</th><th style="padding:6px 8px;background:#1B365D;color:white;font-size:11px;">Date</th><th style="padding:6px 8px;background:#1B365D;color:white;font-size:11px;">Evaluator</th><th style="padding:6px 8px;background:#1B365D;color:white;font-size:11px;">Score</th><th style="padding:6px 8px;background:#1B365D;color:white;font-size:11px;">Result</th></tr>';
+      sortedIters.forEach(iterEv => {
+        const iterPct = iterEv.result ? iterEv.result.finalPercentage : 0;
+        const iterPassed = iterEv.result && iterEv.result.passed;
+        const isCurrent = iterEv.id === ev.id;
+        const bgStyle = isCurrent ? 'background:#e0f2fe;' : '';
+        iterationHtml += '<tr style="' + bgStyle + '">';
+        iterationHtml += '<td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-weight:600;">' + (iterEv.iteration || 1) + '</td>';
+        iterationHtml += '<td style="padding:4px 8px;border:1px solid #ddd;">' + (iterEv.date ? new Date(iterEv.date).toLocaleDateString() : '--') + '</td>';
+        iterationHtml += '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(iterEv.evaluator || '') + '</td>';
+        iterationHtml += '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:700;color:' + (iterPassed ? '#16a34a' : '#dc2626') + ';">' + iterPct.toFixed(1) + '%</td>';
+        iterationHtml += '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:700;color:' + (iterPassed ? '#16a34a' : '#dc2626') + ';">' + (iterPassed ? 'PASS' : 'FAIL') + '</td>';
+        iterationHtml += '</tr>';
+      });
+      iterationHtml += '</table>';
+    }
+
     // Final score breakdown
     let breakdownHtml = '';
     if (ev.result) {
@@ -541,6 +972,7 @@ const Dashboard = (() => {
       }
       breakdownHtml += 'Final score: ' + ev.result.finalPercentage.toFixed(1) + '%<br>';
       breakdownHtml += 'Pass threshold: ' + ev.result.threshold + '%<br>';
+      breakdownHtml += 'Iteration: #' + (ev.iteration || 1) + '<br>';
       if (ev.result.hardFail) {
         breakdownHtml += '<strong style="color:#dc2626;">Hard guardrail violation -- automatic FAIL</strong>';
       }
@@ -574,6 +1006,11 @@ const Dashboard = (() => {
         '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(ev.title || '--') + '</td>' +
         '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Evaluator</td>' +
         '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(ev.evaluator) + '</td>' +
+      '</tr><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Iteration</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">#' + (ev.iteration || 1) + '</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">&nbsp;</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">&nbsp;</td>' +
       '</tr></table>' +
 
       '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Rubric Used</h2>' +
@@ -597,6 +1034,8 @@ const Dashboard = (() => {
         '<tr><th>Criterion</th><th>Wt</th><th>4 Exemplary</th><th>3 Strong</th><th>2 Adequate</th><th>1 Weak</th><th>0 Missing</th></tr>' +
         rubricTableRows +
       '</table></div>' +
+
+      iterationHtml +
 
       '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Scores &amp; Commentary</h2>' +
       scoresHtml +
@@ -647,7 +1086,7 @@ const Dashboard = (() => {
     }
 
     // Build CSV
-    const headers = ['Presenter', 'Title', 'Evaluator', 'Rubric', 'Raw Score', 'Max Score', 'Percentage', 'Penalties', 'Final Score', 'Threshold', 'Result', 'Hard Fail', 'Date'];
+    const headers = ['Presenter', 'Iteration', 'Title', 'Evaluator', 'Rubric', 'Raw Score', 'Max Score', 'Percentage', 'Penalties', 'Final Score', 'Threshold', 'Result', 'Hard Fail', 'Date'];
 
     // Add per-criterion columns
     const rubric = rubricId ? Store.getRubric(rubricId) : null;
@@ -658,6 +1097,7 @@ const Dashboard = (() => {
     const rows = evals.map(ev => {
       const row = [
         ev.presenter || '',
+        ev.iteration || 1,
         ev.title || '',
         ev.evaluator || '',
         ev.rubricName || '',

@@ -343,6 +343,16 @@
   transform: rotate(-90deg);
 }
 
+/* Progress Chart */
+.progress-chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+.progress-chart-wrapper svg {
+  min-width: 300px;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
