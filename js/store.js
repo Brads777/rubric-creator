@@ -1,7 +1,7 @@
 /**
  * store.js — localStorage CRUD for rubrics and evaluations
- * RubricIQ - SHIT Loop Evaluation Framework
- * (c)2026 Brad Scheller
+ * RubricIQ - S.H.I.T. Evaluation Framework
+ * ©2026 G. Bradley Scheller. All rights reserved.
  */
 
 const Store = (() => {
@@ -138,7 +138,7 @@ const Store = (() => {
   // ===== Score Calculation =====
 
   /**
-   * Calculate SHIT Loop score
+   * Calculate S.H.I.T. Loop score
    * @param {Object} rubric - The rubric object
    * @param {Object} scores - { criterionIndex: scoreValue (0-4) }
    * @param {Array} hardViolations - array of indices of violated hard guardrails
@@ -190,7 +190,7 @@ const Store = (() => {
   function getExampleRubric() {
     return {
       name: 'Presentation Evaluation',
-      description: 'Comprehensive rubric for evaluating student presentations in an academic setting. Uses the SHIT Loop scoring methodology.',
+      description: 'Comprehensive rubric for evaluating student presentations in an academic setting. Uses the S.H.I.T. Loop scoring methodology.',
       domain: 'Academic',
       threshold: 96,
       criteria: [

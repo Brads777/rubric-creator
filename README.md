@@ -1,8 +1,8 @@
 # RubricIQ
 
-**SHIT Loop Evaluation Framework** -- Northeastern University
+**Scheller's Superior Human-in-the-Loop (S.H.I.T.)™ Evaluation Framework**
 
-A rubric creation and peer evaluation web app for academic presentations. Students create rubrics using the SHIT Loop scoring methodology, then use them to evaluate each other's presentations.
+A rubric creation and peer evaluation web app for academic presentations. Create rubrics using the S.H.I.T. Loop scoring methodology, then use them to evaluate presentations.
 
 ## Features
 
@@ -10,7 +10,7 @@ A rubric creation and peer evaluation web app for academic presentations. Studen
 - **Scorer** -- Evaluate presentations in real time with running score calculation, PASS/FAIL verdict, and evidence notes
 - **Dashboard** -- View all evaluations, sort by any column, see presenter averages, and export to CSV
 
-## Scoring System (SHIT Loop)
+## Scoring System (S.H.I.T. Loop)
 
 ```
 Score = SUM(score_i x weight_i) / SUM(4 x weight_i) x 100%
@@ -73,6 +73,9 @@ rubric-creator/
 - `Ctrl+3` -- Switch to Dashboard tab
 - `Escape` -- Close detail modal
 
-## License
+## Legal
 
-Copyright 2026 Brad Scheller. All rights reserved.
+Scheller's Superior Human-in-the-Loop (S.H.I.T.)™ is a trademark of G. Bradley Scheller.
+©2026 G. Bradley Scheller. All rights reserved. Patent pending.
+
+The S.H.I.T. Loop evaluation methodology, scoring system, and rubric framework are the intellectual property of G. Bradley Scheller.

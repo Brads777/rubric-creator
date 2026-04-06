@@ -1,7 +1,7 @@
 /**
  * dashboard.js — Results dashboard logic
- * RubricIQ - SHIT Loop Evaluation Framework
- * (c)2026 Brad Scheller
+ * RubricIQ - S.H.I.T. Evaluation Framework
+ * ©2026 G. Bradley Scheller. All rights reserved.
  *
  * Security note: All user-provided strings are inserted via textContent
  * or createElement. No raw user input is placed into innerHTML.
@@ -364,6 +364,16 @@ const Dashboard = (() => {
         row.appendChild(weightedDiv);
         content.appendChild(row);
 
+        // Show commentary if present
+        if (ev.comments && ev.comments[idx]) {
+          const commentDiv = createElement('div', { className: 'text-sm text-navy pl-2 pt-1 pb-1' });
+          const commentLabel = createElement('span', { className: 'text-xs font-semibold text-gray-500 uppercase' }, ['Commentary: ']);
+          const commentText = createElement('span', { className: 'text-xs text-gray-700' }, [ev.comments[idx]]);
+          commentDiv.appendChild(commentLabel);
+          commentDiv.appendChild(commentText);
+          content.appendChild(commentDiv);
+        }
+
         // Show notes if present
         if (ev.notes && ev.notes[idx]) {
           const noteDiv = createElement('div', { className: 'text-xs text-gray-500 italic pl-2 pb-2 border-b border-gray-100' },
@@ -398,7 +408,226 @@ const Dashboard = (() => {
       });
     }
 
+    // Generate Report button
+    const reportBtnContainer = createElement('div', { className: 'mt-4 pt-4 border-t border-gray-200 text-center' });
+    const reportBtn = createElement('button', {
+      className: 'inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer'
+    });
+    reportBtn.style.backgroundColor = '#1B365D';
+    reportBtn.textContent = 'Generate Report';
+    reportBtn.addEventListener('click', () => generateReport(ev));
+    reportBtnContainer.appendChild(reportBtn);
+    content.appendChild(reportBtnContainer);
+
     modal.classList.remove('hidden');
+  }
+
+  // ===== Generate Print Report =====
+
+  function generateReport(ev) {
+    const rubric = Store.getRubric(ev.rubricId);
+    const levelLabels = ['Missing', 'Weak', 'Adequate', 'Strong', 'Exemplary'];
+    const scorePct = ev.result ? ev.result.finalPercentage : 0;
+    const passed = ev.result && ev.result.passed;
+    const dateStr = ev.date ? new Date(ev.date).toLocaleString() : '--';
+
+    // Escape helper for safe HTML insertion
+    function esc(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // Build criteria rows for the full rubric table
+    let rubricTableRows = '';
+    if (rubric && rubric.criteria) {
+      rubric.criteria.forEach(c => {
+        rubricTableRows += '<tr>';
+        rubricTableRows += '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:600;">' + esc(c.name) + '</td>';
+        rubricTableRows += '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;">' + c.weight + '</td>';
+        for (let l = 4; l >= 0; l--) {
+          rubricTableRows += '<td style="padding:6px 8px;border:1px solid #ddd;font-size:11px;">' + esc(c.levels ? c.levels[l] || '' : '') + '</td>';
+        }
+        rubricTableRows += '</tr>';
+      });
+    }
+
+    // Build scores section
+    let scoresHtml = '';
+    if (rubric && rubric.criteria) {
+      rubric.criteria.forEach((criterion, idx) => {
+        const score = ev.scores && ev.scores[idx] !== undefined ? ev.scores[idx] : 0;
+        const weighted = score * criterion.weight;
+        const maxWeighted = 4 * criterion.weight;
+        const levelDesc = criterion.levels && criterion.levels[score] ? criterion.levels[score] : '';
+        const scoreColors = ['#ef4444', '#f97316', '#ca8a04', '#3b82f6', '#16a34a'];
+
+        scoresHtml += '<div style="margin-bottom:12px;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;">';
+        scoresHtml += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+        scoresHtml += '<div><strong>' + esc(criterion.name) + '</strong> <span style="color:#999;font-size:12px;">(Weight: ' + criterion.weight + ')</span></div>';
+        scoresHtml += '<div style="text-align:right;">';
+        scoresHtml += '<span style="font-weight:700;color:' + scoreColors[score] + ';font-size:18px;">' + score + '/4</span>';
+        scoresHtml += ' <span style="color:#999;font-size:12px;">(' + levelLabels[score] + ')</span>';
+        scoresHtml += '<div style="font-size:12px;color:#666;">' + weighted + '/' + maxWeighted + ' weighted pts</div>';
+        scoresHtml += '</div></div>';
+
+        if (levelDesc) {
+          scoresHtml += '<div style="margin-top:6px;font-size:12px;color:#444;font-style:italic;">"' + esc(levelDesc) + '"</div>';
+        }
+
+        // Commentary
+        if (ev.comments && ev.comments[idx]) {
+          scoresHtml += '<div style="margin-top:6px;padding:6px 8px;background:#eef2ff;border-radius:4px;font-size:12px;">';
+          scoresHtml += '<strong style="color:#1B365D;">Commentary:</strong> ' + esc(ev.comments[idx]);
+          scoresHtml += '</div>';
+        }
+
+        scoresHtml += '</div>';
+      });
+    }
+
+    // Build improvement suggestions
+    let improvementsHtml = '';
+    if (rubric && rubric.criteria) {
+      let hasImprovements = false;
+      rubric.criteria.forEach((criterion, idx) => {
+        const score = ev.scores && ev.scores[idx] !== undefined ? ev.scores[idx] : 0;
+        if (score < 4 && criterion.levels && criterion.levels[4]) {
+          hasImprovements = true;
+          improvementsHtml += '<div style="margin-bottom:8px;padding:8px 10px;background:#fffbeb;border:1px solid #C4A35A;border-radius:6px;font-size:12px;">';
+          improvementsHtml += '<strong style="color:#1B365D;">' + esc(criterion.name) + '</strong> (scored ' + score + '/4):<br>';
+          improvementsHtml += '<span style="color:#92400e;">To reach Excellent: ' + esc(criterion.levels[4]) + '</span>';
+          improvementsHtml += '</div>';
+        }
+      });
+      if (!hasImprovements) {
+        improvementsHtml = '<p style="color:#16a34a;font-weight:600;">All criteria scored at Exemplary level. Outstanding performance!</p>';
+      }
+    }
+
+    // Build guardrail violations
+    let guardrailsHtml = '';
+    if (ev.hardViolations && ev.hardViolations.length > 0 && rubric && rubric.hardGuardrails) {
+      guardrailsHtml += '<div style="margin-bottom:8px;padding:8px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;">';
+      guardrailsHtml += '<strong style="color:#dc2626;">Hard Guardrail Violations (Instant Fail):</strong><ul style="margin:4px 0 0 16px;">';
+      ev.hardViolations.forEach(idx => {
+        const g = rubric.hardGuardrails[idx];
+        if (g) guardrailsHtml += '<li style="color:#991b1b;">' + esc(g.name) + (g.description ? ': ' + esc(g.description) : '') + '</li>';
+      });
+      guardrailsHtml += '</ul></div>';
+    }
+    if (ev.softViolations && ev.softViolations.length > 0 && rubric && rubric.softGuardrails) {
+      guardrailsHtml += '<div style="margin-bottom:8px;padding:8px;background:#fefce8;border:1px solid #fde68a;border-radius:6px;">';
+      guardrailsHtml += '<strong style="color:#ca8a04;">Soft Guardrail Violations:</strong><ul style="margin:4px 0 0 16px;">';
+      ev.softViolations.forEach(idx => {
+        const g = rubric.softGuardrails[idx];
+        if (g) guardrailsHtml += '<li style="color:#92400e;">' + esc(g.name) + ' (-' + g.penalty + '%)' + (g.description ? ': ' + esc(g.description) : '') + '</li>';
+      });
+      guardrailsHtml += '</ul></div>';
+    }
+    if (!guardrailsHtml) {
+      guardrailsHtml = '<p style="color:#16a34a;">No guardrail violations.</p>';
+    }
+
+    // Final score breakdown
+    let breakdownHtml = '';
+    if (ev.result) {
+      breakdownHtml += '<div style="font-size:13px;color:#444;margin-top:8px;">';
+      breakdownHtml += 'Raw weighted score: ' + ev.result.rawScore + ' / ' + ev.result.maxScore + ' points<br>';
+      breakdownHtml += 'Raw percentage: ' + ev.result.percentage.toFixed(1) + '%<br>';
+      if (ev.result.penaltyTotal > 0) {
+        breakdownHtml += 'Soft guardrail penalties: -' + ev.result.penaltyTotal + '%<br>';
+      }
+      breakdownHtml += 'Final score: ' + ev.result.finalPercentage.toFixed(1) + '%<br>';
+      breakdownHtml += 'Pass threshold: ' + ev.result.threshold + '%<br>';
+      if (ev.result.hardFail) {
+        breakdownHtml += '<strong style="color:#dc2626;">Hard guardrail violation -- automatic FAIL</strong>';
+      }
+      breakdownHtml += '</div>';
+    }
+
+    const passColor = passed ? '#16a34a' : '#dc2626';
+    const passLabel = passed ? 'PASSED' : 'FAILED';
+
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RubricIQ Evaluation Report</title>' +
+      '<style>' +
+      'body{font-family:Georgia,"Times New Roman",serif;max-width:900px;margin:0 auto;padding:24px;color:#1a1a1a;line-height:1.5;}' +
+      'h1,h2,h3{font-family:"Segoe UI",Helvetica,Arial,sans-serif;}' +
+      'table{width:100%;border-collapse:collapse;margin:8px 0;}' +
+      'th{background:#1B365D;color:white;padding:6px 8px;text-align:left;font-size:11px;text-transform:uppercase;}' +
+      '@media print{body{padding:12px;}.no-print{display:none !important;}}' +
+      '</style></head><body>' +
+      '<div style="text-align:center;border-bottom:3px solid #1B365D;padding-bottom:16px;margin-bottom:24px;">' +
+        '<h1 style="color:#1B365D;margin:0 0 4px 0;font-size:24px;">RubricIQ Evaluation Report</h1>' +
+        '<p style="color:#C4A35A;margin:0;font-size:13px;font-weight:600;">Scheller\'s Superior Human-in-the-Loop (S.H.I.T.) Evaluation Framework\u2122</p>' +
+      '</div>' +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;">Evaluation Information</h2>' +
+      '<table><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:600;background:#f9fafb;">Presenter</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(ev.presenter) + '</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:600;background:#f9fafb;">Date</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(dateStr) + '</td>' +
+      '</tr><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Presentation Title</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(ev.title || '--') + '</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Evaluator</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(ev.evaluator) + '</td>' +
+      '</tr></table>' +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Rubric Used</h2>' +
+      '<table><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:600;background:#f9fafb;">Name</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(rubric ? rubric.name : ev.rubricName || '--') + '</td>' +
+      '</tr><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Description</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(rubric ? rubric.description || '' : '') + '</td>' +
+      '</tr><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Domain</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + esc(rubric ? rubric.domain || '--' : '--') + '</td>' +
+      '</tr><tr>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:600;background:#f9fafb;">Pass Threshold</td>' +
+        '<td style="padding:4px 8px;border:1px solid #ddd;">' + (ev.result ? ev.result.threshold : '--') + '%</td>' +
+      '</tr></table>' +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Full Rubric Definition</h2>' +
+      '<div style="overflow-x:auto;">' +
+      '<table>' +
+        '<tr><th>Criterion</th><th>Wt</th><th>4 Exemplary</th><th>3 Strong</th><th>2 Adequate</th><th>1 Weak</th><th>0 Missing</th></tr>' +
+        rubricTableRows +
+      '</table></div>' +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Scores &amp; Commentary</h2>' +
+      scoresHtml +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Improvement Suggestions</h2>' +
+      improvementsHtml +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Guardrail Violations</h2>' +
+      guardrailsHtml +
+
+      '<h2 style="color:#1B365D;font-size:16px;border-bottom:1px solid #C4A35A;padding-bottom:4px;margin-top:20px;">Final Score</h2>' +
+      '<div style="text-align:center;padding:16px;border:2px solid ' + passColor + ';border-radius:12px;margin:8px 0;">' +
+        '<div style="font-size:36px;font-weight:700;color:' + passColor + ';">' + scorePct.toFixed(1) + '%</div>' +
+        '<div style="font-size:18px;font-weight:700;color:' + passColor + ';">' + passLabel + '</div>' +
+      '</div>' +
+      breakdownHtml +
+
+      '<div style="text-align:center;border-top:3px solid #1B365D;padding-top:12px;margin-top:32px;font-size:11px;color:#888;">' +
+        '<p style="margin:0;">\u00A92026 G. Bradley Scheller \u00B7 Scheller\'s Superior Human-in-the-Loop (S.H.I.T.) Evaluation Framework\u2122</p>' +
+      '</div>' +
+
+      '<div class="no-print" style="text-align:center;margin-top:16px;">' +
+        '<button onclick="window.print()" style="background:#1B365D;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">Print Report</button>' +
+      '</div>' +
+
+      '</body></html>';
+
+    // Use Blob URL for safe rendering (avoids document.write)
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
   }
 
   function closeDetailModal() {
@@ -483,6 +712,7 @@ const Dashboard = (() => {
   return {
     init,
     refresh,
-    refreshRubricSelect
+    refreshRubricSelect,
+    generateReport
   };
 })();

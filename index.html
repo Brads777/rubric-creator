@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RubricIQ - SHIT Loop Evaluation Framework</title>
+  <title>RubricIQ - Scheller's Superior Human-in-the-Loop (S.H.I.T.) Evaluation Framework</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -34,10 +34,10 @@
         <div class="w-10 h-10 bg-gold rounded-lg flex items-center justify-center font-bold text-navy text-lg">R</div>
         <div>
           <h1 class="text-xl sm:text-2xl font-bold tracking-tight">RubricIQ</h1>
-          <p class="text-xs sm:text-sm text-gold opacity-90">SHIT Loop Evaluation Framework &middot; Northeastern University</p>
+          <p class="text-xs sm:text-sm text-gold opacity-90">Scheller's Superior Human-in-the-Loop (S.H.I.T.) Evaluation Framework&trade;</p>
         </div>
       </div>
-      <div class="text-xs text-gray-300 print:hidden">&copy;2026 Brad Scheller</div>
+      <div class="text-xs text-gray-300 print:hidden">&copy;2026 G. Bradley Scheller</div>
     </div>
   </header>
 
@@ -46,7 +46,11 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex gap-1" role="tablist">
         <button class="tab-btn active px-4 sm:px-6 py-3 text-sm font-semibold border-b-3 transition-colors duration-200"
-                data-tab="builder" role="tab" aria-selected="true">
+                data-tab="about" role="tab" aria-selected="true">
+          About
+        </button>
+        <button class="tab-btn px-4 sm:px-6 py-3 text-sm font-semibold border-b-3 transition-colors duration-200"
+                data-tab="builder" role="tab" aria-selected="false">
           <span class="hidden sm:inline">Rubric </span>Builder
         </button>
         <button class="tab-btn px-4 sm:px-6 py-3 text-sm font-semibold border-b-3 transition-colors duration-200"
@@ -64,9 +68,151 @@
   <!-- Main Content -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
 
+    <!-- ==================== TAB 0: ABOUT ==================== -->
+    <section id="tab-about" class="tab-content">
+      <div class="max-w-3xl mx-auto space-y-6">
+
+        <!-- Hero -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+          <div class="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center font-bold text-navy text-2xl mx-auto mb-4">R</div>
+          <h2 class="text-2xl font-bold text-navy mb-2">RubricIQ</h2>
+          <p class="text-gold font-semibold mb-4">Scheller's Superior Human-in-the-Loop (S.H.I.T.)&trade; Evaluation Framework</p>
+          <p class="text-gray-600 text-sm max-w-xl mx-auto">A structured methodology for creating objective, repeatable evaluation criteria &mdash; and using them to drive iterative improvement until excellence is achieved.</p>
+        </div>
+
+        <!-- Purpose -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-bold text-navy mb-3">Purpose</h3>
+          <p class="text-sm text-gray-700 mb-3">Most evaluation is subjective. Two reviewers look at the same presentation and reach different conclusions because they&rsquo;re using different, unstated criteria. The result? Feedback that&rsquo;s vague, inconsistent, and hard to act on.</p>
+          <p class="text-sm text-gray-700 mb-3"><strong>RubricIQ changes that.</strong> This tool helps you build structured rubrics with explicit criteria, weighted by importance, with clear definitions of what each performance level looks like &mdash; from Missing (0) to Exemplary (4). Every evaluator scores against the same standard. Every score has evidence. Every gap has a clear path to improvement.</p>
+          <p class="text-sm text-gray-700">The goal isn&rsquo;t just to grade &mdash; it&rsquo;s to create a <strong>feedback loop that drives improvement.</strong></p>
+        </div>
+
+        <!-- The Test-First Philosophy -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-bold text-navy mb-3">The Test-First Philosophy</h3>
+          <p class="text-sm text-gray-700 mb-3">Great software engineers write the test <em>before</em> they write the code. They define what &ldquo;passing&rdquo; looks like up front, then build until the test passes. This is called <strong>test-driven development</strong>, and it&rsquo;s one of the most reliable ways to produce quality work.</p>
+          <p class="text-sm text-gray-700 mb-3">The S.H.I.T. Loop applies the same principle to <em>any</em> creative or professional output:</p>
+          <div class="bg-cream rounded-lg p-4 mb-3">
+            <ol class="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+              <li><strong>Define Excellence First</strong> &mdash; Before creating anything, define exactly what a score of 4 (Exemplary) looks like for each criterion. This is your &ldquo;test.&rdquo;</li>
+              <li><strong>Create Your Work</strong> &mdash; Build, present, write, or deliver your output.</li>
+              <li><strong>Evaluate Against the Rubric</strong> &mdash; Score each criterion honestly. The rubric tells you exactly where you stand.</li>
+              <li><strong>Improve Based on Feedback</strong> &mdash; For every criterion below Exemplary, the rubric shows you exactly what&rsquo;s needed to level up.</li>
+              <li><strong>Iterate Until You Pass</strong> &mdash; Revise and re-evaluate. The loop continues until you meet your quality threshold (default: 96%).</li>
+            </ol>
+          </div>
+          <p class="text-sm text-gray-700">This is not a one-and-done grading tool. It&rsquo;s an <strong>iterative refinement engine.</strong></p>
+        </div>
+
+        <!-- How the AI Interview Helps -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-bold text-navy mb-3">Building Better Criteria</h3>
+          <p class="text-sm text-gray-700 mb-3">The hardest part of rubric design is writing level definitions that are <strong>specific enough to be useful</strong>. Saying &ldquo;Good presentation skills&rdquo; doesn&rsquo;t help anyone improve. Saying &ldquo;Maintains eye contact with audience for 80%+ of delivery, varies vocal tone to emphasize key points, and pauses effectively after important statements&rdquo; &mdash; that&rsquo;s actionable.</p>
+          <p class="text-sm text-gray-700 mb-3">When building your rubric, think about each criterion this way:</p>
+          <div class="bg-cream rounded-lg p-4 mb-3">
+            <ul class="text-sm text-gray-700 space-y-2">
+              <li><span class="inline-block w-5 h-5 rounded bg-green-500 text-white text-xs font-bold text-center leading-5 mr-2">4</span> <strong>Exemplary:</strong> What does perfection look like? Be specific. This is the target everyone is aiming for.</li>
+              <li><span class="inline-block w-5 h-5 rounded bg-blue-500 text-white text-xs font-bold text-center leading-5 mr-2">3</span> <strong>Strong:</strong> What&rsquo;s clearly competent but missing that extra polish? What separates good from great?</li>
+              <li><span class="inline-block w-5 h-5 rounded bg-yellow-500 text-white text-xs font-bold text-center leading-5 mr-2">2</span> <strong>Adequate:</strong> What meets minimum expectations but needs improvement? What&rsquo;s &ldquo;acceptable but forgettable&rdquo;?</li>
+              <li><span class="inline-block w-5 h-5 rounded bg-orange-500 text-white text-xs font-bold text-center leading-5 mr-2">1</span> <strong>Weak:</strong> What shows an attempt but falls short? What are the common mistakes at this level?</li>
+              <li><span class="inline-block w-5 h-5 rounded bg-red-500 text-white text-xs font-bold text-center leading-5 mr-2">0</span> <strong>Missing:</strong> What does absence or complete failure look like?</li>
+            </ul>
+          </div>
+          <p class="text-sm text-gray-700">The more specific your level definitions, the more useful the feedback becomes. A well-designed rubric practically writes the improvement plan for you.</p>
+        </div>
+
+        <!-- The Scoring System -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-bold text-navy mb-3">The Scoring System</h3>
+          <p class="text-sm text-gray-700 mb-3">Each criterion is scored 0&ndash;4 and multiplied by its weight (1&ndash;5). The composite score is calculated as:</p>
+          <div class="bg-navy text-white rounded-lg p-4 mb-3 font-mono text-sm text-center">
+            Score = &Sigma;(score<sub>i</sub> &times; weight<sub>i</sub>) &divide; &Sigma;(4 &times; weight<sub>i</sub>) &times; 100%
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div class="bg-cream rounded-lg p-3">
+              <p class="font-bold text-navy mb-1">Weights (1&ndash;5)</p>
+              <p class="text-gray-600 text-xs">Not all criteria matter equally. A weight of 5 means this criterion is five times more important than a weight of 1.</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-3 border border-red-200">
+              <p class="font-bold text-red-700 mb-1">Hard Guardrails</p>
+              <p class="text-gray-600 text-xs">Instant fail conditions. Plagiarism, no-show, safety violations &mdash; no score can compensate.</p>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+              <p class="font-bold text-yellow-700 mb-1">Soft Guardrails</p>
+              <p class="text-gray-600 text-xs">Penalty deductions (1&ndash;10%). Serious issues that don&rsquo;t warrant automatic failure but reduce the final score.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- How to Use -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-bold text-navy mb-3">How to Use This Tool</h3>
+          <div class="space-y-3 text-sm text-gray-700">
+            <div class="flex gap-3">
+              <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold shrink-0">1</div>
+              <div><strong>Build your rubric</strong> (Builder tab) &mdash; Define criteria, weights, and level descriptions. Start from the example or create your own. Remember: define Exemplary (4) first &mdash; that&rsquo;s your test case.</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold shrink-0">2</div>
+              <div><strong>Score presentations</strong> (Scorer tab) &mdash; Select your rubric, score each criterion 0&ndash;4, and add commentary explaining your reasoning. The system shows you what&rsquo;s needed to reach Excellent for any criterion below 4.</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold shrink-0">3</div>
+              <div><strong>Review results</strong> (Dashboard tab) &mdash; See all evaluations, compare scores, view presenter averages, and generate printable PDF reports with improvement suggestions.</div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-8 h-8 bg-gold rounded-lg flex items-center justify-center text-navy font-bold shrink-0">4</div>
+              <div><strong>Iterate</strong> &mdash; Share the report. The presenter improves. Re-evaluate. Repeat until the score passes the threshold. <em>This is the loop.</em></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="text-center py-4">
+          <button onclick="document.querySelector('[data-tab=builder]').click()" class="btn-navy px-8 py-3 text-base">
+            Get Started &rarr; Build a Rubric
+          </button>
+        </div>
+
+        <!-- Legal -->
+        <div class="text-center text-xs text-gray-400 pb-4">
+          <p>Scheller's Superior Human-in-the-Loop (S.H.I.T.)&trade; is a trademark of G. Bradley Scheller.</p>
+          <p>&copy;2026 G. Bradley Scheller. All rights reserved. Patent pending.</p>
+        </div>
+
+      </div>
+    </section>
+
     <!-- ==================== TAB 1: RUBRIC BUILDER ==================== -->
-    <section id="tab-builder" class="tab-content">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <section id="tab-builder" class="tab-content hidden">
+
+      <!-- Landing: New / Example chooser -->
+      <div id="builder-landing" class="flex flex-col items-center justify-center py-16 space-y-6">
+        <h2 class="text-2xl font-bold text-navy">Get Started</h2>
+        <p class="text-gray-500 text-sm max-w-md text-center">Create a rubric from scratch or explore the built-in example to see how the S.H.I.T. Loop scoring system works.</p>
+        <div class="flex gap-4">
+          <button id="landing-new-btn" class="btn-navy px-8 py-3 text-base">New Rubric</button>
+          <button id="landing-example-btn" class="btn-accent px-8 py-3 text-base">View Example</button>
+        </div>
+      </div>
+
+      <!-- Example read-only preview -->
+      <div id="builder-example-preview" class="hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-navy">Example: Presentation Evaluation Rubric</h2>
+            <div class="flex gap-2">
+              <button id="example-use-template-btn" class="btn-gold px-4 py-2 text-sm">Use as Template</button>
+              <button id="example-back-btn" class="btn-outline px-4 py-2 text-sm">Back</button>
+            </div>
+          </div>
+          <div id="example-preview-content" class="text-sm"></div>
+        </div>
+      </div>
+
+      <!-- Editor (existing grid) -->
+      <div id="builder-editor" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- Left: Builder Form -->
         <div class="space-y-6">
@@ -169,7 +315,7 @@
           </div>
         </div>
 
-      </div>
+      </div><!-- /builder-editor -->
     </section>
 
     <!-- ==================== TAB 2: SCORER ==================== -->
@@ -335,7 +481,7 @@
 
   <!-- Footer -->
   <footer class="bg-navy text-gray-400 text-xs text-center py-4 print:hidden">
-    <p>&copy;2026 Brad Scheller &middot; RubricIQ &middot; SHIT Loop Evaluation Framework &middot; Northeastern University</p>
+    <p>&copy;2026 G. Bradley Scheller &middot; RubricIQ &middot; Scheller's Superior Human-in-the-Loop (S.H.I.T.) Evaluation Framework&trade; &middot; Patent Pending</p>
     <p class="mt-1 text-gray-500">All data stored locally in your browser. No server required.</p>
   </footer>
 

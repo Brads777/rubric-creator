@@ -1,7 +1,7 @@
 /**
  * app.js — Navigation, initialization, global utilities
- * RubricIQ - SHIT Loop Evaluation Framework
- * (c)2026 Brad Scheller
+ * RubricIQ - S.H.I.T. Evaluation Framework
+ * ©2026 G. Bradley Scheller. All rights reserved.
  */
 
 const App = (() => {
@@ -64,15 +64,18 @@ const App = (() => {
 
   function initKeyboard() {
     document.addEventListener('keydown', (e) => {
-      // Ctrl+1/2/3 for tab switching
+      // Ctrl+1/2/3/4 for tab switching
       if (e.ctrlKey && !e.shiftKey && !e.altKey) {
         if (e.key === '1') {
           e.preventDefault();
-          document.querySelector('[data-tab="builder"]').click();
+          document.querySelector('[data-tab="about"]').click();
         } else if (e.key === '2') {
           e.preventDefault();
-          document.querySelector('[data-tab="scorer"]').click();
+          document.querySelector('[data-tab="builder"]').click();
         } else if (e.key === '3') {
+          e.preventDefault();
+          document.querySelector('[data-tab="scorer"]').click();
+        } else if (e.key === '4') {
           e.preventDefault();
           document.querySelector('[data-tab="dashboard"]').click();
         }

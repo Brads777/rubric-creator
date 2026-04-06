@@ -1,7 +1,7 @@
 /**
  * rubric-builder.js — Rubric creation logic and UI
- * RubricIQ - SHIT Loop Evaluation Framework
- * (c)2026 Brad Scheller
+ * RubricIQ - S.H.I.T. Evaluation Framework
+ * ©2026 G. Bradley Scheller. All rights reserved.
  *
  * Security note: All user-provided strings are sanitized through escapeHtml()
  * which uses textContent assignment for safe HTML entity encoding before any
@@ -52,6 +52,106 @@ const RubricBuilder = (() => {
     return el;
   }
 
+  // ===== Landing / Example / Editor views =====
+
+  function showLanding() {
+    document.getElementById('builder-landing').classList.remove('hidden');
+    document.getElementById('builder-example-preview').classList.add('hidden');
+    document.getElementById('builder-editor').classList.add('hidden');
+  }
+
+  function showEditor() {
+    document.getElementById('builder-landing').classList.add('hidden');
+    document.getElementById('builder-example-preview').classList.add('hidden');
+    document.getElementById('builder-editor').classList.remove('hidden');
+  }
+
+  function showExamplePreview() {
+    document.getElementById('builder-landing').classList.add('hidden');
+    document.getElementById('builder-editor').classList.add('hidden');
+    document.getElementById('builder-example-preview').classList.remove('hidden');
+    renderExamplePreview();
+  }
+
+  function renderExamplePreview() {
+    const data = Store.getExampleRubric();
+    const container = document.getElementById('example-preview-content');
+    container.replaceChildren();
+
+    // Title & description
+    const title = createElement('h3', { className: 'text-base font-bold text-navy mb-1' }, [data.name]);
+    container.appendChild(title);
+    if (data.description) {
+      const desc = createElement('p', { className: 'text-xs text-gray-500 mb-1' }, [data.description]);
+      container.appendChild(desc);
+    }
+    const metaText = 'Domain: ' + data.domain + ' \u00B7 Pass: ' + data.threshold + '%';
+    const meta = createElement('p', { className: 'text-xs text-gray-400 mb-3' }, [metaText]);
+    container.appendChild(meta);
+
+    // Criteria table (reversed: 4 on left, 0 on right)
+    let maxWeighted = 0;
+    data.criteria.forEach(c => maxWeighted += 4 * c.weight);
+
+    const tableWrapper = createElement('div', { className: 'overflow-x-auto mb-3' });
+    const table = createElement('table', { className: 'preview-rubric-table' });
+
+    const thead = createElement('thead');
+    const headerRow = createElement('tr');
+    ['Criterion', 'Wt', '4 Exemplary', '3 Strong', '2 Adequate', '1 Weak', '0 Missing'].forEach(text => {
+      headerRow.appendChild(createElement('th', {}, [text]));
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = createElement('tbody');
+    data.criteria.forEach(c => {
+      const tr = createElement('tr');
+      tr.appendChild(createElement('td', { className: 'font-semibold' }, [c.name]));
+      tr.appendChild(createElement('td', { className: 'text-center font-bold' }, [String(c.weight)]));
+      for (let l = 4; l >= 0; l--) {
+        tr.appendChild(createElement('td', {}, [c.levels[l] || '']));
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+
+    container.appendChild(createElement('p', { className: 'text-xs text-gray-400 mb-3' }, ['Max weighted score: ' + maxWeighted + ' points']));
+
+    // Hard guardrails
+    if (data.hardGuardrails && data.hardGuardrails.length > 0) {
+      const hardBox = createElement('div', { className: 'p-2 bg-red-50 border border-red-200 rounded-lg mb-2' });
+      hardBox.appendChild(createElement('p', { className: 'text-xs font-bold text-red-600 mb-1' }, ['Hard Guardrails (Instant Fail):']));
+      const ul = createElement('ul', { className: 'text-xs text-red-700 list-disc list-inside' });
+      data.hardGuardrails.forEach(g => {
+        const li = createElement('li');
+        li.appendChild(createElement('strong', {}, [g.name]));
+        if (g.description) li.appendChild(document.createTextNode(': ' + g.description));
+        ul.appendChild(li);
+      });
+      hardBox.appendChild(ul);
+      container.appendChild(hardBox);
+    }
+
+    // Soft guardrails
+    if (data.softGuardrails && data.softGuardrails.length > 0) {
+      const softBox = createElement('div', { className: 'p-2 bg-yellow-50 border border-yellow-200 rounded-lg' });
+      softBox.appendChild(createElement('p', { className: 'text-xs font-bold text-yellow-600 mb-1' }, ['Soft Guardrails (Penalties):']));
+      const ul = createElement('ul', { className: 'text-xs text-yellow-700 list-disc list-inside' });
+      data.softGuardrails.forEach(g => {
+        const li = createElement('li');
+        li.appendChild(createElement('strong', {}, [g.name]));
+        li.appendChild(document.createTextNode(' (-' + g.penalty + '%)'));
+        if (g.description) li.appendChild(document.createTextNode(': ' + g.description));
+        ul.appendChild(li);
+      });
+      softBox.appendChild(ul);
+      container.appendChild(softBox);
+    }
+  }
+
   // ===== Initialization =====
 
   function init() {
@@ -66,14 +166,31 @@ const RubricBuilder = (() => {
     document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
     document.getElementById('print-rubric-btn').addEventListener('click', () => window.print());
 
+    // Landing buttons
+    document.getElementById('landing-new-btn').addEventListener('click', () => {
+      showEditor();
+      clearForm();
+    });
+    document.getElementById('landing-example-btn').addEventListener('click', showExamplePreview);
+    document.getElementById('example-use-template-btn').addEventListener('click', () => {
+      const example = Store.getExampleRubric();
+      showEditor();
+      loadRubricIntoEditor(example);
+      App.toast('Example loaded as template -- edit freely!', 'success');
+    });
+    document.getElementById('example-back-btn').addEventListener('click', showLanding);
+
     const builderSection = document.getElementById('tab-builder');
     builderSection.addEventListener('input', debounce(updatePreview, 300));
     builderSection.addEventListener('change', updatePreview);
 
     refreshSavedRubricsList();
 
+    // On first visit show landing; if rubrics exist show editor
     if (Store.isFirstVisit()) {
-      loadExample();
+      showLanding();
+    } else {
+      showEditor();
     }
   }
 
@@ -373,6 +490,7 @@ const RubricBuilder = (() => {
   // ===== Load Rubric into Editor =====
 
   function loadRubricIntoEditor(rubric) {
+    showEditor();
     clearForm();
     editingRubricId = rubric.id;
 
@@ -399,6 +517,7 @@ const RubricBuilder = (() => {
   function loadExample() {
     const example = Store.getExampleRubric();
     const saved = Store.saveRubric(example);
+    showEditor();
     loadRubricIntoEditor(saved);
     refreshSavedRubricsList();
     if (typeof Scorer !== 'undefined') Scorer.refreshRubricSelect();
@@ -487,17 +606,17 @@ const RubricBuilder = (() => {
       const tableWrapper = createElement('div', { className: 'overflow-x-auto mb-3' });
       const table = createElement('table', { className: 'preview-rubric-table' });
 
-      // thead
+      // thead — reversed: 4 (Exemplary) on left, 0 (Missing) on right
       const thead = createElement('thead');
       const headerRow = createElement('tr');
-      ['Criterion', 'Wt', '0 Missing', '1 Weak', '2 Adequate', '3 Strong', '4 Exemplary'].forEach(text => {
+      ['Criterion', 'Wt', '4 Exemplary', '3 Strong', '2 Adequate', '1 Weak', '0 Missing'].forEach(text => {
         const th = createElement('th', {}, [text]);
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
       table.appendChild(thead);
 
-      // tbody
+      // tbody — levels in reverse order (4 → 0)
       const tbody = createElement('tbody');
       data.criteria.forEach(c => {
         const tr = createElement('tr');
@@ -505,7 +624,7 @@ const RubricBuilder = (() => {
         const wtTd = createElement('td', { className: 'text-center font-bold' }, [String(c.weight)]);
         tr.appendChild(nameTd);
         tr.appendChild(wtTd);
-        for (let l = 0; l < 5; l++) {
+        for (let l = 4; l >= 0; l--) {
           const td = createElement('td', {}, [c.levels[l] || '']);
           tr.appendChild(td);
         }
@@ -650,6 +769,8 @@ const RubricBuilder = (() => {
     init,
     refreshSavedRubricsList,
     loadRubricIntoEditor,
-    updatePreview
+    updatePreview,
+    showEditor,
+    showLanding
   };
 })();

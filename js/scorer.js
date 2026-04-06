@@ -1,7 +1,7 @@
 /**
  * scorer.js — Scoring interface logic
- * RubricIQ - SHIT Loop Evaluation Framework
- * (c)2026 Brad Scheller
+ * RubricIQ - S.H.I.T. Evaluation Framework
+ * ©2026 G. Bradley Scheller. All rights reserved.
  *
  * Security note: All user-provided strings are sanitized through escapeHtml()
  * or inserted via textContent. No raw user input is placed into innerHTML.
@@ -10,6 +10,7 @@
 const Scorer = (() => {
   let currentRubric = null;
   let criteriaScores = {};
+  let criteriaComments = {};
   let hardViolations = [];
   let softViolations = [];
 
@@ -78,6 +79,7 @@ const Scorer = (() => {
     if (!currentRubric) return;
 
     criteriaScores = {};
+    criteriaComments = {};
     hardViolations = [];
     softViolations = [];
 
@@ -122,18 +124,30 @@ const Scorer = (() => {
       titleGroup.appendChild(titleEl);
       header.appendChild(titleGroup);
 
+      const headerRight = createElement('div', { className: 'flex items-center gap-3' });
       const scoreDisplay = createElement('span', {
         className: 'criterion-score-display text-sm font-bold text-gray-300',
         'data-criterion-idx': String(idx)
       }, ['--/4']);
-      header.appendChild(scoreDisplay);
+      headerRight.appendChild(scoreDisplay);
+
+      // W x G display
+      const wxgDisplay = createElement('div', { className: 'text-right', 'data-wxg-idx': String(idx) });
+      const wxgValue = createElement('div', { className: 'text-sm font-bold text-gray-300' }, ['\u2014']);
+      wxgValue.setAttribute('data-wxg-value', String(idx));
+      const wxgMax = createElement('div', { className: 'text-xs text-gray-400' }, ['max ' + (criterion.weight * 4)]);
+      wxgDisplay.appendChild(wxgValue);
+      wxgDisplay.appendChild(wxgMax);
+      headerRight.appendChild(wxgDisplay);
+
+      header.appendChild(headerRight);
       card.appendChild(header);
 
-      // Radio options
+      // Radio options — reversed order: 4 (Exemplary) first, 0 (Missing) last
       const radioGroup = createElement('div', { className: 'score-radio-group' });
       const radioName = 'criterion-' + idx;
 
-      for (let level = 0; level < 5; level++) {
+      for (let level = 4; level >= 0; level--) {
         const label = createElement('label', { className: 'score-radio-label' });
 
         const radio = createElement('input', {
@@ -149,6 +163,34 @@ const Scorer = (() => {
           // Update criterion score display
           scoreDisplay.textContent = level + '/4';
           scoreDisplay.className = 'criterion-score-display text-sm font-bold ' + levelColors[level];
+          // Update W x G display
+          const total = criterion.weight * level;
+          const wxgEl = document.querySelector('[data-wxg-value="' + idx + '"]');
+          if (wxgEl) {
+            wxgEl.textContent = criterion.weight + ' \u00D7 ' + level + ' = ' + total;
+            wxgEl.className = 'text-sm font-bold ' + levelColors[level];
+          }
+          // Show/hide improvement tip
+          const tipEl = card.querySelector('.improvement-tip');
+          if (level < 4 && criterion.levels && criterion.levels[4]) {
+            if (tipEl) {
+              tipEl.classList.remove('hidden');
+              tipEl.querySelector('.improvement-tip-text').textContent = criterion.levels[4];
+            }
+          } else {
+            if (tipEl) tipEl.classList.add('hidden');
+          }
+          // Update commentary placeholder based on score
+          const commentEl = card.querySelector('[data-comment-idx="' + idx + '"]');
+          if (commentEl) {
+            if (level <= 2) {
+              commentEl.placeholder = 'What specific improvements would help reach a higher score?';
+            } else if (level === 3) {
+              commentEl.placeholder = 'What would push this from Strong to Excellent?';
+            } else {
+              commentEl.placeholder = 'What made this exemplary? What should they keep doing?';
+            }
+          }
           updateRunningScore();
         });
 
@@ -173,8 +215,40 @@ const Scorer = (() => {
 
       card.appendChild(radioGroup);
 
+      // Improvement tip (hidden by default, shown when score < 4)
+      if (criterion.levels && criterion.levels[4]) {
+        const tipDiv = createElement('div', { className: 'improvement-tip hidden mt-3 p-3 rounded-lg border' });
+        tipDiv.style.backgroundColor = '#f0f7ff';
+        tipDiv.style.borderColor = '#C4A35A';
+        const tipHeader = createElement('span', { className: 'text-xs font-bold' });
+        tipHeader.style.color = '#1B365D';
+        tipHeader.textContent = '\uD83D\uDCA1 To reach Excellent: ';
+        const tipText = createElement('span', { className: 'improvement-tip-text text-xs' });
+        tipText.style.color = '#1B365D';
+        tipText.textContent = criterion.levels[4];
+        tipDiv.appendChild(tipHeader);
+        tipDiv.appendChild(tipText);
+        card.appendChild(tipDiv);
+      }
+
+      // Commentary textarea
+      const commentDiv = createElement('div', { className: 'mt-3' });
+      const commentLabel = createElement('label', { className: 'text-xs font-medium text-gray-600' }, ['Commentary:']);
+      const commentInput = createElement('textarea', {
+        className: 'input-field text-xs mt-1',
+        rows: '2',
+        placeholder: 'Why did you select this score? What evidence supports it?',
+        'data-comment-idx': String(idx)
+      });
+      commentInput.addEventListener('input', () => {
+        criteriaComments[idx] = commentInput.value;
+      });
+      commentDiv.appendChild(commentLabel);
+      commentDiv.appendChild(commentInput);
+      card.appendChild(commentDiv);
+
       // Notes field
-      const notesDiv = createElement('div', { className: 'mt-3' });
+      const notesDiv = createElement('div', { className: 'mt-2' });
       const notesLabel = createElement('label', { className: 'text-xs text-gray-500' }, ['Evidence/Notes (optional):']);
       const notesInput = createElement('textarea', {
         className: 'input-field text-xs mt-1',
@@ -387,6 +461,13 @@ const Scorer = (() => {
       if (val) notes[ta.dataset.notesIdx] = val;
     });
 
+    // Gather commentary
+    const comments = {};
+    document.querySelectorAll('[data-comment-idx]').forEach(ta => {
+      const val = ta.value.trim();
+      if (val) comments[ta.dataset.commentIdx] = val;
+    });
+
     // Calculate final score
     const result = Store.calculateScore(currentRubric, criteriaScores, hardViolations, softViolations);
 
@@ -398,22 +479,84 @@ const Scorer = (() => {
       evaluator,
       scores: { ...criteriaScores },
       notes,
+      comments,
       hardViolations: [...hardViolations],
       softViolations: [...softViolations],
       result
     };
 
-    Store.saveEvaluation(evaluation);
+    const savedEvaluation = Store.saveEvaluation(evaluation);
     App.toast('Evaluation submitted! Score: ' + result.finalPercentage.toFixed(1) + '% (' + (result.passed ? 'PASS' : 'FAIL') + ')', 'success');
 
     // Refresh dashboard
     if (typeof Dashboard !== 'undefined') Dashboard.refresh();
 
-    // Show result alert
+    // Show result with Generate Report option
+    showResultOverlay(savedEvaluation);
+  }
+
+  // ===== Result Overlay After Submit =====
+
+  function showResultOverlay(evaluation) {
+    const result = evaluation.result;
     const resultMsg = result.hardFail
       ? 'HARD GUARDRAIL VIOLATION - AUTOMATIC FAIL'
       : (result.passed ? 'PASSED' : 'FAILED') + ' with ' + result.finalPercentage.toFixed(1) + '%';
-    alert('Evaluation Result: ' + resultMsg);
+
+    // Create overlay
+    const overlay = createElement('div', {
+      className: 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4'
+    });
+    const box = createElement('div', {
+      className: 'bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-center'
+    });
+
+    const passColor = result.passed ? 'text-green-600' : 'text-red-600';
+    const titleEl = createElement('h3', { className: 'text-lg font-bold text-navy mb-2' }, ['Evaluation Submitted']);
+    const scoreEl = createElement('div', { className: 'text-4xl font-bold mb-1 ' + passColor },
+      [result.finalPercentage.toFixed(1) + '%']);
+    const labelEl = createElement('div', { className: 'text-lg font-bold mb-4 ' + passColor },
+      [result.passed ? 'PASSED' : 'FAILED']);
+
+    if (result.hardFail) {
+      const hardNote = createElement('div', { className: 'text-sm text-red-600 font-semibold mb-4' },
+        ['Hard guardrail violation - automatic fail']);
+      box.appendChild(titleEl);
+      box.appendChild(scoreEl);
+      box.appendChild(hardNote);
+    } else {
+      box.appendChild(titleEl);
+      box.appendChild(scoreEl);
+      box.appendChild(labelEl);
+    }
+
+    const btnRow = createElement('div', { className: 'flex gap-3 justify-center' });
+
+    const reportBtn = createElement('button', {
+      className: 'px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer'
+    });
+    reportBtn.style.backgroundColor = '#1B365D';
+    reportBtn.textContent = 'Generate Report';
+    reportBtn.addEventListener('click', () => {
+      if (typeof Dashboard !== 'undefined') Dashboard.generateReport(evaluation);
+    });
+
+    const closeBtn = createElement('button', {
+      className: 'px-5 py-2.5 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 cursor-pointer hover:bg-gray-50'
+    });
+    closeBtn.textContent = 'Close';
+    closeBtn.addEventListener('click', () => overlay.remove());
+
+    btnRow.appendChild(reportBtn);
+    btnRow.appendChild(closeBtn);
+    box.appendChild(btnRow);
+    overlay.appendChild(box);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    document.body.appendChild(overlay);
   }
 
   // ===== Reset Scorer =====
@@ -421,6 +564,7 @@ const Scorer = (() => {
   function resetScorer() {
     currentRubric = null;
     criteriaScores = {};
+    criteriaComments = {};
     hardViolations = [];
     softViolations = [];
 
