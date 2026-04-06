@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RubricIQ - SHIT Loop Evaluation Framework</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: '#1B365D',
+            gold: '#C4A35A',
+            cream: '#F5F3EE',
+            accent: '#489FC8',
+            'navy-light': '#2A4A7A',
+            'navy-dark': '#122440',
+            'gold-light': '#D4B86A',
+            'gold-dark': '#A4834A',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-cream min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-navy text-white shadow-lg print:shadow-none">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gold rounded-lg flex items-center justify-center font-bold text-navy text-lg">R</div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight">RubricIQ</h1>
+          <p class="text-xs sm:text-sm text-gold opacity-90">SHIT Loop Evaluation Framework &middot; Northeastern University</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-300 print:hidden">&copy;2026 Brad Scheller</div>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav class="bg-white border-b border-gray-200 shadow-sm print:hidden sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="flex gap-1" role="tablist">
+        <button class="tab-btn active px-4 sm:px-6 py-3 text-sm font-semibold border-b-3 transition-colors duration-200"
+                data-tab="builder" role="tab" aria-selected="true">
+          <span class="hidden sm:inline">Rubric </span>Builder
+        </button>
+        <button class="tab-btn px-4 sm:px-6 py-3 text-sm font-semibold border-b-3 transition-colors duration-200"
+                data-tab="scorer" role="tab" aria-selected="false">
+          Scorer
+        </button>
+        <button class="tab-btn px-4 sm:px-6 py-3 text-sm font-semibold border-b-3 transition-colors duration-200"
+                data-tab="dashboard" role="tab" aria-selected="false">
+          Dashboard
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+
+    <!-- ==================== TAB 1: RUBRIC BUILDER ==================== -->
+    <section id="tab-builder" class="tab-content">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Left: Builder Form -->
+        <div class="space-y-6">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-bold text-navy mb-4">Create a Rubric</h2>
+
+            <!-- Rubric Metadata -->
+            <div class="space-y-3 mb-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Rubric Name <span class="text-red-500">*</span></label>
+                <input type="text" id="rubric-name" class="input-field" placeholder="e.g., Presentation Evaluation">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="rubric-description" class="input-field" rows="2" placeholder="Brief description of what this rubric evaluates..."></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Domain</label>
+                  <input type="text" id="rubric-domain" class="input-field" placeholder="e.g., Academic">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Pass Threshold (%)</label>
+                  <input type="number" id="rubric-threshold" class="input-field" value="96" min="1" max="100">
+                </div>
+              </div>
+            </div>
+
+            <!-- Editing existing rubric indicator -->
+            <div id="editing-indicator" class="hidden mb-4 p-3 bg-accent/10 border border-accent/30 rounded-lg flex items-center justify-between">
+              <span class="text-sm text-accent font-medium">Editing: <span id="editing-rubric-name" class="font-bold"></span></span>
+              <button id="cancel-edit-btn" class="text-xs px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700">Cancel</button>
+            </div>
+
+            <!-- Criteria Section -->
+            <div class="border-t border-gray-200 pt-4 mb-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-navy uppercase tracking-wide">Criteria</h3>
+                <button id="add-criterion-btn" class="btn-gold text-xs px-3 py-1.5">+ Add Criterion</button>
+              </div>
+              <div id="criteria-list" class="space-y-3">
+                <!-- Criteria cards inserted here -->
+              </div>
+            </div>
+
+            <!-- Hard Guardrails -->
+            <div class="border-t border-gray-200 pt-4 mb-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-red-600 uppercase tracking-wide">Hard Guardrails <span class="text-xs font-normal text-gray-500">(instant fail)</span></h3>
+                <button id="add-hard-guardrail-btn" class="btn-outline-red text-xs px-3 py-1.5">+ Add</button>
+              </div>
+              <div id="hard-guardrails-list" class="space-y-2">
+                <!-- Hard guardrails inserted here -->
+              </div>
+            </div>
+
+            <!-- Soft Guardrails -->
+            <div class="border-t border-gray-200 pt-4 mb-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-yellow-600 uppercase tracking-wide">Soft Guardrails <span class="text-xs font-normal text-gray-500">(penalty deduction)</span></h3>
+                <button id="add-soft-guardrail-btn" class="btn-outline-yellow text-xs px-3 py-1.5">+ Add</button>
+              </div>
+              <div id="soft-guardrails-list" class="space-y-2">
+                <!-- Soft guardrails inserted here -->
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="border-t border-gray-200 pt-4 flex flex-wrap gap-2">
+              <button id="save-rubric-btn" class="btn-navy px-4 py-2 text-sm">Save Rubric</button>
+              <button id="clear-builder-btn" class="btn-outline px-4 py-2 text-sm">Clear Form</button>
+              <button id="export-rubric-btn" class="btn-outline px-4 py-2 text-sm">Export JSON</button>
+              <label class="btn-outline px-4 py-2 text-sm cursor-pointer">
+                Import JSON
+                <input type="file" id="import-rubric-input" accept=".json" class="hidden">
+              </label>
+              <button id="load-example-btn" class="btn-accent px-4 py-2 text-sm">Load Example</button>
+            </div>
+          </div>
+
+          <!-- Saved Rubrics List -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-sm font-bold text-navy uppercase tracking-wide mb-3">Saved Rubrics</h3>
+            <div id="saved-rubrics-list" class="space-y-2">
+              <p class="text-sm text-gray-400 italic">No rubrics saved yet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Live Preview -->
+        <div class="lg:sticky lg:top-20 lg:self-start">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="rubric-preview-container">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-bold text-navy">Live Preview</h2>
+              <button id="print-rubric-btn" class="btn-outline text-xs px-3 py-1.5 print:hidden">Print</button>
+            </div>
+            <div id="rubric-preview" class="text-sm">
+              <p class="text-gray-400 italic">Start building your rubric to see a preview here.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: SCORER ==================== -->
+    <section id="tab-scorer" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: Scoring Form -->
+        <div class="lg:col-span-2 space-y-6">
+
+          <!-- Rubric & Presenter Info -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-bold text-navy mb-4">Score a Presentation</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Select Rubric <span class="text-red-500">*</span></label>
+                <select id="scorer-rubric-select" class="input-field">
+                  <option value="">-- Choose a rubric --</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Presenter Name <span class="text-red-500">*</span></label>
+                <input type="text" id="scorer-presenter" class="input-field" placeholder="Who is presenting?">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Presentation Title</label>
+                <input type="text" id="scorer-title" class="input-field" placeholder="Title of the presentation">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Name (Evaluator) <span class="text-red-500">*</span></label>
+                <input type="text" id="scorer-evaluator" class="input-field" placeholder="Your name">
+              </div>
+            </div>
+          </div>
+
+          <!-- Criteria Scoring -->
+          <div id="scorer-criteria-container" class="space-y-4">
+            <p class="text-sm text-gray-400 italic bg-white rounded-xl shadow-sm border border-gray-200 p-6">Select a rubric above to begin scoring.</p>
+          </div>
+
+          <!-- Guardrails -->
+          <div id="scorer-guardrails-container" class="hidden space-y-4">
+            <!-- Hard guardrails -->
+            <div id="scorer-hard-guardrails" class="bg-white rounded-xl shadow-sm border-2 border-red-200 p-6 hidden">
+              <h3 class="text-sm font-bold text-red-600 uppercase tracking-wide mb-3">Hard Guardrails (Instant Fail)</h3>
+              <div id="scorer-hard-guardrails-list" class="space-y-2"></div>
+            </div>
+            <!-- Soft guardrails -->
+            <div id="scorer-soft-guardrails" class="bg-white rounded-xl shadow-sm border-2 border-yellow-200 p-6 hidden">
+              <h3 class="text-sm font-bold text-yellow-600 uppercase tracking-wide mb-3">Soft Guardrails (Penalty Deductions)</h3>
+              <div id="scorer-soft-guardrails-list" class="space-y-2"></div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="flex gap-3">
+            <button id="submit-evaluation-btn" class="btn-navy px-6 py-3 text-sm font-semibold disabled:opacity-50" disabled>Submit Evaluation</button>
+            <button id="reset-scorer-btn" class="btn-outline px-4 py-3 text-sm">Reset</button>
+          </div>
+        </div>
+
+        <!-- Right: Running Score -->
+        <div class="lg:sticky lg:top-20 lg:self-start">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-sm font-bold text-navy uppercase tracking-wide mb-4">Running Score</h3>
+            <div id="running-score-display" class="text-center">
+              <div id="score-circle" class="w-32 h-32 mx-auto rounded-full border-8 border-gray-200 flex items-center justify-center mb-3">
+                <span id="score-percentage" class="text-3xl font-bold text-gray-300">--%</span>
+              </div>
+              <p id="score-points" class="text-sm text-gray-500 mb-1">0 / 0 points</p>
+              <p id="score-threshold" class="text-xs text-gray-400 mb-3">Threshold: --%</p>
+              <div id="score-verdict" class="text-lg font-bold text-gray-300">--</div>
+              <div id="score-hard-fail" class="hidden mt-2 text-sm text-red-600 font-semibold">HARD GUARDRAIL VIOLATED</div>
+              <div id="score-penalty-info" class="hidden mt-2 text-xs text-yellow-600"></div>
+            </div>
+          </div>
+
+          <!-- Scoring Legend -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-4">
+            <h3 class="text-sm font-bold text-navy uppercase tracking-wide mb-3">Scoring Legend</h3>
+            <div class="space-y-1 text-xs">
+              <div class="flex items-center gap-2"><span class="w-6 text-center font-bold text-red-500">0</span> Missing</div>
+              <div class="flex items-center gap-2"><span class="w-6 text-center font-bold text-orange-500">1</span> Weak</div>
+              <div class="flex items-center gap-2"><span class="w-6 text-center font-bold text-yellow-600">2</span> Adequate</div>
+              <div class="flex items-center gap-2"><span class="w-6 text-center font-bold text-blue-500">3</span> Strong</div>
+              <div class="flex items-center gap-2"><span class="w-6 text-center font-bold text-green-600">4</span> Exemplary</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: DASHBOARD ==================== -->
+    <section id="tab-dashboard" class="tab-content hidden">
+      <div class="space-y-6">
+
+        <!-- Controls -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-bold text-navy">Evaluation Dashboard</h2>
+              <p class="text-sm text-gray-500">View and analyze all submitted evaluations</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <select id="dashboard-rubric-select" class="input-field text-sm w-auto">
+                <option value="">All Rubrics</option>
+              </select>
+              <button id="export-csv-btn" class="btn-outline text-xs px-3 py-1.5">Export CSV</button>
+              <button id="clear-evaluations-btn" class="btn-outline-red text-xs px-3 py-1.5">Clear All</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div id="dashboard-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+            <div class="text-2xl font-bold text-navy" id="stat-total">0</div>
+            <div class="text-xs text-gray-500 uppercase">Total Evals</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+            <div class="text-2xl font-bold text-green-600" id="stat-pass">0</div>
+            <div class="text-xs text-gray-500 uppercase">Passed</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+            <div class="text-2xl font-bold text-red-600" id="stat-fail">0</div>
+            <div class="text-xs text-gray-500 uppercase">Failed</div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+            <div class="text-2xl font-bold text-accent" id="stat-avg">--%</div>
+            <div class="text-xs text-gray-500 uppercase">Avg Score</div>
+          </div>
+        </div>
+
+        <!-- Presenter Averages -->
+        <div id="presenter-averages-section" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hidden">
+          <h3 class="text-sm font-bold text-navy uppercase tracking-wide mb-3">Presenter Averages</h3>
+          <div id="presenter-averages-table" class="overflow-x-auto"></div>
+        </div>
+
+        <!-- Evaluations Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-sm font-bold text-navy uppercase tracking-wide mb-3">All Evaluations</h3>
+          <div id="evaluations-table-container" class="overflow-x-auto">
+            <p class="text-sm text-gray-400 italic">No evaluations yet.</p>
+          </div>
+        </div>
+
+        <!-- Detail Modal -->
+        <div id="evaluation-detail-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+          <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-navy">Evaluation Details</h3>
+              <button id="close-detail-modal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="evaluation-detail-content"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-navy text-gray-400 text-xs text-center py-4 print:hidden">
+    <p>&copy;2026 Brad Scheller &middot; RubricIQ &middot; SHIT Loop Evaluation Framework &middot; Northeastern University</p>
+    <p class="mt-1 text-gray-500">All data stored locally in your browser. No server required.</p>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+  <!-- Scripts -->
+  <script src="js/store.js"></script>
+  <script src="js/rubric-builder.js"></script>
+  <script src="js/scorer.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
